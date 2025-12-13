@@ -1,0 +1,9 @@
+AIO/
+build/
+*.exe
+*.o
+*.obj
+.vscode/
+__pycache__/
+GiuaKy/
+Work in Uni =D/ 
