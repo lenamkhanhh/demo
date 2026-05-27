@@ -1,0 +1,1548 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VoxelCode Local Judge</title>
+  <style>
+    :root {
+      --bg: #182231;
+      --panel: #111827;
+      --panel2: #202b3a;
+      --ink: #eef4ff;
+      --muted: #9aa8bb;
+      --line: #334155;
+      --cream: #efe6cd;
+      --green: #35b65a;
+      --purple: #7c3aed;
+      --red: #ef476f;
+      --left-pane: 41%;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 13px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    header {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      background: #0f172a;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; }
+    .logo {
+      width: 28px; height: 28px; border-radius: 5px;
+      display: grid; place-items: center;
+      background: var(--purple);
+      font-weight: 900;
+    }
+    .pill {
+      min-height: 24px;
+      padding: 2px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      color: var(--muted);
+      background: #172033;
+      font-weight: 650;
+    }
+    main {
+      display: grid;
+      grid-template-columns: minmax(360px, var(--left-pane)) 8px minmax(260px, 1fr);
+      gap: 6px;
+      padding: 10px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+    body.resizing { cursor: col-resize; user-select: none; }
+    .splitter {
+      width: 8px;
+      min-height: calc(100vh - 68px);
+      border-radius: 999px;
+      cursor: col-resize;
+      background: linear-gradient(90deg, transparent 0 2px, #334155 2px 6px, transparent 6px 8px);
+      opacity: .75;
+    }
+    .splitter:hover,
+    body.resizing .splitter {
+      background: linear-gradient(90deg, transparent 0 1px, #7c3aed 1px 7px, transparent 7px 8px);
+      opacity: 1;
+    }
+    section {
+      min-width: 0;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .head {
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      background: #121b2b;
+    }
+    h2 { margin: 0; font-size: 13px; letter-spacing: 0; }
+    .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    button, select {
+      height: 30px;
+      border-radius: 5px;
+      border: 1px solid var(--line);
+      background: #172033;
+      color: var(--ink);
+      padding: 0 9px;
+      font: inherit;
+      font-weight: 650;
+    }
+    button { cursor: pointer; }
+    button.primary { background: var(--green); border-color: var(--green); color: #07150b; }
+    button.purple { background: var(--purple); border-color: var(--purple); color: white; }
+    button:disabled { opacity: .6; cursor: wait; }
+    label.toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-weight: 700;
+      user-select: none;
+    }
+    .left-panel {
+      display: grid;
+      grid-template-rows: auto auto auto;
+      align-content: start;
+    }
+    .editor {
+      position: relative;
+      display: grid;
+      grid-template-columns: 46px 1fr;
+      height: clamp(520px, 62vh, 680px);
+      min-height: 0;
+      background: #0b1020;
+      overflow: hidden;
+    }
+    .line-nums {
+      padding: 12px 8px;
+      padding-bottom: calc(100% - 30px);
+      text-align: right;
+      color: #60708a;
+      background: #090e1b;
+      border-right: 1px solid #1e293b;
+      font: 13px/1.5 "Cascadia Mono", Consolas, monospace;
+      user-select: none;
+      overflow: hidden;
+      white-space: pre;
+    }
+    .code-pane {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+    .highlight, textarea {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      margin: 0;
+      white-space: pre;
+      overflow-wrap: normal;
+      word-break: normal;
+      tab-size: 4;
+      font: 13px/1.5 "Cascadia Mono", Consolas, monospace;
+    }
+    .highlight {
+      position: absolute;
+      inset: 0;
+      padding: 12px 14px;
+      padding-bottom: calc(100% - 30px);
+      overflow: auto;
+      pointer-events: none;
+      color: #d8f6df;
+      background: #0b1020;
+    }
+    textarea {
+      position: absolute;
+      inset: 0;
+      resize: none;
+      border: 0;
+      outline: 0;
+      padding: 12px 14px;
+      padding-bottom: calc(100% - 30px);
+      background: transparent;
+      color: transparent;
+      caret-color: #ffffff;
+      overflow: auto;
+    }
+    textarea::selection { background: rgba(124, 58, 237, .38); color: transparent; }
+    .tok-kw { color: #a78bfa; font-weight: 700; }
+    .tok-type { color: #67e8f9; }
+    .tok-num { color: #fbbf24; }
+    .tok-str { color: #86efac; }
+    .tok-com { color: #64748b; font-style: italic; }
+    .tok-pre { color: #fb7185; }
+    .score-list {
+      padding: 10px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      background: var(--panel);
+    }
+    .score-card {
+      min-height: 54px;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: #263244;
+      display: grid;
+      gap: 3px;
+      cursor: pointer;
+      transition: border-color .15s, background .15s, box-shadow .15s;
+    }
+    .score-card:hover { border-color: #7c3aed; }
+    .score-card.active {
+      border-color: #a78bfa;
+      box-shadow: 0 0 0 1px rgba(167,139,250,.5);
+    }
+    .score-card.solved {
+      background: rgba(53,182,90,.18);
+      border-color: #35b65a;
+    }
+    .score-card.solved strong::after {
+      content: "  \2713 AC";
+      color: #8ff0ab;
+    }
+    .score-card strong { font-size: 13px; }
+    .score-card span { color: var(--muted); font-size: 12px; }
+    .score-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .score-card .reroll {
+      width: 28px;
+      height: 24px;
+      padding: 0;
+      border-radius: 5px;
+      background: #172033;
+      color: #dbeafe;
+      line-height: 1;
+    }
+    .right {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 10px;
+    }
+    .viewer {
+      background: var(--cream);
+      color: #1f2937;
+      min-height: 500px;
+    }
+    .viewer .head {
+      background: #f5eedb;
+      border-color: #d8ccb2;
+      color: #1f2937;
+    }
+    .viewer-body {
+      padding: 12px;
+    }
+    .result-pane {
+      min-height: 390px;
+      background: var(--panel);
+    }
+    .result-body {
+      padding: 12px;
+      display: grid;
+      grid-template-columns: minmax(420px, 1fr) 240px;
+      gap: 12px;
+      align-items: start;
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .metric {
+      min-height: 66px;
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel2);
+    }
+    .metric span { color: var(--muted); }
+    .metric strong { display: block; font-size: 22px; margin-top: 3px; }
+    pre {
+      margin: 0;
+      max-height: 210px;
+      overflow: auto;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: #0b1020;
+      color: #d8f6df;
+      font: 12px/1.45 "Cascadia Mono", Consolas, monospace;
+      white-space: pre-wrap;
+    }
+    .verdict {
+      padding: 9px 10px;
+      border-radius: 6px;
+      background: #172033;
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+    .verdict.good { color: #8ff0ab; border-color: rgba(53,182,90,.5); }
+    .verdict.bad { color: #ff9bae; border-color: rgba(239,71,111,.55); }
+
+    .viewer3d {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      width: 100%;
+    }
+    .viewer3d-stage {
+      position: relative;
+      min-height: 470px;
+      border-radius: 8px;
+      border: 1px solid rgba(50, 42, 30, .25);
+      overflow: hidden;
+      background: #eee4cb;
+    }
+    .result-pane .viewer3d-stage {
+      min-height: 330px;
+      background: #162235;
+      border-color: var(--line);
+    }
+    .viewer3d canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      outline: none;
+    }
+    .viewer3d-toolbar {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 3;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .viewer3d-toolbar button {
+      height: 26px;
+      padding: 0 8px;
+      border-radius: 4px;
+      background: rgba(15, 23, 42, .82);
+      color: white;
+      border-color: rgba(255,255,255,.18);
+      font-size: 12px;
+    }
+    .viewer3d-tip {
+      position: absolute;
+      z-index: 4;
+      display: none;
+      min-width: 150px;
+      transform: translate(12px, 12px);
+      pointer-events: none;
+      padding: 7px 9px;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, .94);
+      color: #f8fafc;
+      border: 1px solid rgba(255,255,255,.18);
+      font-size: 12px;
+      box-shadow: 0 10px 28px rgba(0,0,0,.25);
+    }
+    .viewer3d-info {
+      position: absolute;
+      left: 10px;
+      bottom: 10px;
+      z-index: 3;
+      min-width: 190px;
+      max-width: calc(100% - 20px);
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, .88);
+      color: #dbeafe;
+      border: 1px solid rgba(255,255,255,.16);
+      font-size: 12px;
+    }
+    .viewer3d-error {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      color: #1f2937;
+      text-align: center;
+      font-weight: 750;
+      background: rgba(239, 230, 205, .94);
+      z-index: 2;
+    }
+    .result-pane .viewer3d-error {
+      color: #dbeafe;
+      background: rgba(22, 34, 53, .94);
+    }
+    .viewer3d-legend {
+      display: grid;
+      align-content: center;
+      gap: 7px;
+      min-width: 62px;
+      color: #4f4638;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .result-pane .viewer3d-legend { color: #cbd5e1; }
+    .legend-row {
+      display: grid;
+      grid-template-columns: 18px 24px;
+      gap: 7px;
+      align-items: center;
+    }
+    .legend-swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 3px;
+      border: 1px solid rgba(0,0,0,.35);
+    }
+    @media (max-width: 1050px) {
+      main { grid-template-columns: 1fr; }
+      .splitter { display: none; }
+      .editor { height: 520px; }
+      .result-body { grid-template-columns: 1fr; }
+      .viewer3d { grid-template-columns: 1fr; }
+      .viewer3d-legend { grid-template-columns: repeat(5, max-content); padding-left: 4px; }
+      .viewer3d-stage { min-height: 420px; }
+      .result-pane .viewer3d-stage { min-height: 360px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand"><div class="logo">V</div><span>VoxelCode</span></div>
+    <div class="row">
+      <span id="timer" class="pill">10:00</span>
+      <select id="problem"></select>
+      <label class="toggle"><input id="syncCamera" type="checkbox"> Sync Camera</label>
+      <button id="newBtn" type="button">New Set</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="left-panel">
+      <div class="head">
+        <h2>Code Editor</h2>
+        <div class="row">
+          <button id="loadCpp" class="purple" type="button">C++</button>
+          <button id="runBtn" class="primary" type="button">Chay code</button>
+        </div>
+      </div>
+      <div class="editor">
+        <div id="lineNums" class="line-nums">1</div>
+        <div class="code-pane">
+          <pre id="highlight" class="highlight" aria-hidden="true"></pre>
+          <textarea id="code" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off"></textarea>
+        </div>
+      </div>
+      <div class="score-list" id="scoreList"></div>
+    </section>
+
+    <div id="splitter" class="splitter" title="Keo de doi do rong editor"></div>
+
+    <div class="right">
+      <section class="viewer">
+        <div class="head">
+          <h2>Target Shape</h2>
+          <span id="targetInfo" class="pill">15 x 15</span>
+        </div>
+        <div class="viewer-body">
+          <div id="targetBoardMount"></div>
+        </div>
+      </section>
+
+      <section class="result-pane">
+        <div class="head">
+          <h2>Your Output</h2>
+          <span id="status" class="pill">Ready</span>
+        </div>
+        <div class="result-body">
+          <div id="outputBoardMount"></div>
+          <div class="metrics">
+            <div class="metric"><span>Verdict</span><strong id="verdictText">-</strong></div>
+            <div class="metric"><span>Score</span><strong id="scoreText">0</strong></div>
+            <div class="metric"><span>Correct</span><strong id="matchText">0/225</strong></div>
+            <div class="metric"><span>Wrong</span><strong id="wrongText">225</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="head">
+          <h2>Compiler Output</h2>
+          <button id="revealBtn" type="button">Reveal matrix</button>
+        </div>
+        <div style="padding:12px;display:grid;gap:10px">
+          <div id="message" class="verdict">Press Chay code to compile and render your grid.</div>
+          <pre id="log"></pre>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    (() => {
+      const localHost = location.hostname === "127.0.0.1" || location.hostname === "localhost";
+      if (localHost && location.port && location.port !== "8787") {
+        location.replace(`http://${location.hostname}:8787/`);
+      }
+    })();
+  </script>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three.module.js"
+      }
+    }
+  </script>
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "./vendor/OrbitControls.js";
+
+    const N = 15;
+    const colors = [
+      "#e8dfca",
+      "#e84b4b", "#f59f1f", "#f4d84c", "#53b45d", "#23a7a0",
+      "#3977d6", "#7b54d6", "#cc4fb3", "#8b5a2b", "#202733"
+    ];
+    const points = [10, 20, 30, 40];
+    const problemKinds = ["bands", "diagonal", "rings", "blocks", "checker", "spiral", "frame"];
+    let problems = [];
+    let current = 0;
+    let lastOutput = Array.from({ length: N }, () => Array(N).fill(0));
+    let startedAt = Date.now();
+    let targetViewer = null;
+    let outputViewer = null;
+    let syncing = false;
+
+    const $ = (id) => document.getElementById(id);
+
+    class Voxel3DViewer {
+      constructor({ mountId, title, showLegend = false, onCameraChange = null }) {
+        this.mount = $(mountId);
+        this.title = title;
+        this.showLegend = showLegend;
+        this.onCameraChange = onCameraChange;
+        this.grid = blank();
+        this.expectedGrid = null;
+        this.incorrectCells = new Set();
+        this.cellMeshes = [];
+        this.hovered = null;
+        this.selected = null;
+        this.isAnimatingCamera = false;
+        this.suppressCameraChange = false;
+        this.userCameraActive = false;
+        this.renderWidth = 0;
+        this.renderHeight = 0;
+
+        this.root = document.createElement("div");
+        this.root.className = "viewer3d";
+        this.stage = document.createElement("div");
+        this.stage.className = "viewer3d-stage";
+        this.toolbar = document.createElement("div");
+        this.toolbar.className = "viewer3d-toolbar";
+        this.tooltip = document.createElement("div");
+        this.tooltip.className = "viewer3d-tip";
+        this.info = document.createElement("div");
+        this.info.className = "viewer3d-info";
+        this.info.textContent = "Click a voxel to pin row, col, value.";
+        this.stage.append(this.toolbar, this.tooltip, this.info);
+        this.root.appendChild(this.stage);
+        if (showLegend) this.root.appendChild(this.makeLegend());
+        this.mount.replaceChildren(this.root);
+
+        for (const [label, view] of [["3D", "iso"], ["Top", "top"], ["Reset", "reset"]]) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = label;
+          btn.addEventListener("click", () => {
+            if (view === "reset") this.clearSelection();
+            this.setView(view === "reset" ? "iso" : view, true);
+          });
+          this.toolbar.appendChild(btn);
+        }
+
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(this.stage.closest(".result-pane") ? 0x162235 : 0xefe6cd);
+        this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+        try {
+          this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
+        } catch (error) {
+          const box = document.createElement("div");
+          box.className = "viewer3d-error";
+          box.textContent = "Chrome dang tat/chan WebGL. Bat Hardware acceleration hoac dung Edge de xem viewer 3D.";
+          this.stage.appendChild(box);
+          throw error;
+        }
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.stage.insertBefore(this.renderer.domElement, this.toolbar);
+
+        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.08;
+        this.controls.enableRotate = true;
+        this.controls.enableZoom = true;
+        this.controls.enablePan = false;
+        this.controls.rotateSpeed = 0.35;
+        this.controls.zoomSpeed = 0.65;
+        this.controls.screenSpacePanning = true;
+        this.controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+        this.controls.mouseButtons.RIGHT = null;
+        this.controls.minDistance = 13;
+        this.controls.maxDistance = 34;
+        this.controls.minPolarAngle = THREE.MathUtils.degToRad(25);
+        this.controls.maxPolarAngle = THREE.MathUtils.degToRad(82);
+        this.controls.minAzimuthAngle = THREE.MathUtils.degToRad(0)
+        this.controls.maxAzimuthAngle = THREE.MathUtils.degToRad(90);
+        this.controls.target.set(0, 0, 0);
+        this.controls.addEventListener("start", () => {
+          this.userCameraActive = true;
+        });
+        this.controls.addEventListener("end", () => {
+          this.userCameraActive = false;
+          if (!this.isAnimatingCamera && !this.suppressCameraChange && this.onCameraChange) this.onCameraChange(this);
+        });
+        this.controls.addEventListener("change", () => {
+          if (
+            this.userCameraActive &&
+            !this.isAnimatingCamera &&
+            !this.suppressCameraChange &&
+            this.onCameraChange
+          ) this.onCameraChange(this);
+        });
+
+        const hemi = new THREE.HemisphereLight(0xffffff, 0x7b715f, 0.9);
+        this.scene.add(hemi);
+        const dir = new THREE.DirectionalLight(0xffffff, 1.35);
+        dir.position.set(8, 12, 7);
+        dir.castShadow = true;
+        dir.shadow.mapSize.set(1024, 1024);
+        this.scene.add(dir);
+        const fill = new THREE.DirectionalLight(0xffffff, 0.42);
+        fill.position.set(-7, 8, -6);
+        this.scene.add(fill);
+
+        this.boardGroup = new THREE.Group();
+        this.scene.add(this.boardGroup);
+        this.hoverOutline = this.makeOutline(0xffff66);
+        this.selectedOutline = this.makeOutline(0x00ffff);
+        this.scene.add(this.hoverOutline, this.selectedOutline);
+        this.hoverOutline.visible = false;
+        this.selectedOutline.visible = false;
+
+        this.raycaster = new THREE.Raycaster();
+        this.pointer = new THREE.Vector2();
+        this.resizeObserver = new ResizeObserver(() => this.resize());
+        this.resizeObserver.observe(this.stage);
+
+        this.renderer.domElement.addEventListener("pointermove", (event) => this.onPointerMove(event));
+        this.renderer.domElement.addEventListener("pointerleave", () => this.clearHover());
+        this.renderer.domElement.addEventListener("click", (event) => this.onClick(event));
+        this.renderer.domElement.addEventListener("contextmenu", (event) => event.preventDefault());
+
+        this.setView("iso", false);
+        this.resize();
+        this.animate();
+      }
+
+      makeLegend() {
+        const legend = document.createElement("div");
+        legend.className = "viewer3d-legend";
+        for (let v = 1; v <= 10; v++) {
+          const row = document.createElement("div");
+          row.className = "legend-row";
+          const swatch = document.createElement("div");
+          swatch.className = "legend-swatch";
+          swatch.style.background = colors[v];
+          const num = document.createElement("div");
+          num.textContent = v;
+          row.append(swatch, num);
+          legend.appendChild(row);
+        }
+        return legend;
+      }
+
+      updateGrid({ grid, incorrectCells = null, expectedGrid = null }) {
+        this.grid = grid;
+        this.expectedGrid = expectedGrid;
+        this.incorrectCells = incorrectCells || new Set();
+        this.selected = null;
+        this.info.textContent = "Click a voxel to pin row, col, value.";
+        this.rebuildModel();
+      }
+
+      rebuildModel() {
+        this.boardGroup.clear();
+        this.cellMeshes = [];
+
+        for (let row = 0; row < N; row++) {
+          for (let col = 0; col < N; col++) {
+            const raw = Number(this.grid[row]?.[col] || 0);
+            const valid = raw === 0 || (raw >= 1 && raw <= 10);
+            const value = raw >= 1 && raw <= 10 ? raw : 0;
+            const isFilled = value > 0;
+            const h = isFilled ? 0.9 : 0.055;
+            const geometry = new THREE.BoxGeometry(0.94, h, 0.94);
+            const mat = isFilled
+              ? new THREE.MeshStandardMaterial({
+                  color: new THREE.Color(colors[value]),
+                  roughness: 0.72,
+                  metalness: 0.02,
+                })
+              : new THREE.MeshBasicMaterial({
+                  color: 0xffffff,
+                  transparent: true,
+                  opacity: 0,
+                  depthWrite: false,
+                });
+            const cube = new THREE.Mesh(geometry, mat);
+            cube.position.set(col - 7, h / 2, row - 7);
+            cube.userData = {
+              row,
+              col,
+              value: valid ? raw : raw,
+              valid,
+              expected: this.expectedGrid ? this.expectedGrid[row][col] : undefined,
+              incorrect: this.incorrectCells.has(`${row},${col}`),
+              height: h,
+            };
+            cube.castShadow = isFilled;
+            cube.receiveShadow = isFilled;
+            const edgeColor = isFilled ? 0x3b3327 : 0x9f9687;
+            if (isFilled) {
+              cube.add(new THREE.LineSegments(
+                new THREE.EdgesGeometry(cube.geometry),
+                new THREE.LineBasicMaterial({ color: edgeColor, transparent: true, opacity: 0.55 })
+              ));
+            } else {
+              cube.add(new THREE.LineSegments(
+                new THREE.EdgesGeometry(cube.geometry),
+                new THREE.LineBasicMaterial({ color: edgeColor, transparent: true, opacity: 0.28 })
+              ));
+            }
+            if (cube.userData.incorrect) {
+              const redEdges = new THREE.LineSegments(
+                new THREE.EdgesGeometry(new THREE.BoxGeometry(1.02, h + 0.08, 1.02)),
+                new THREE.LineBasicMaterial({ color: 0xff2f5f })
+              );
+              redEdges.position.set(0, 0.02, 0);
+              cube.add(redEdges);
+            }
+            this.boardGroup.add(cube);
+            this.cellMeshes.push(cube);
+          }
+        }
+
+        this.addLabels();
+        this.clearHover();
+        this.clearSelection(false);
+      }
+
+      addLabels() {
+        for (let col = 0; col < N; col++) {
+          const label = this.makeTextSprite(String(col), "#26313f");
+          label.position.set(col - 7, 0.06, -8.35);
+          this.boardGroup.add(label);
+        }
+        for (let row = 0; row < N; row++) {
+          const label = this.makeTextSprite(String(row), "#26313f");
+          label.position.set(-8.45, 0.06, row - 7);
+          this.boardGroup.add(label);
+        }
+      }
+
+      makeTextSprite(text, color = "#26313f", w = 80, h = 40) {
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, w, h);
+        ctx.font = "700 24px Segoe UI, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = color;
+        ctx.fillText(text, w / 2, h / 2);
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }));
+        sprite.scale.set(w / 52, h / 52, 1);
+        return sprite;
+      }
+
+      makeOutline(color) {
+        return new THREE.LineSegments(
+          new THREE.EdgesGeometry(new THREE.BoxGeometry(1.02, 0.98, 1.02)),
+          new THREE.LineBasicMaterial({ color })
+        );
+      }
+
+      positionOutline(outline, mesh) {
+        const h = mesh.userData.height || 0.9;
+        outline.geometry.dispose();
+        outline.geometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(1.02, h + 0.08, 1.02));
+        outline.position.copy(mesh.position);
+        outline.position.y = h / 2 + 0.02;
+        outline.visible = true;
+      }
+
+      onPointerMove(event) {
+        const hit = this.pick(event);
+        if (!hit) {
+          this.clearHover();
+          return;
+        }
+        this.hovered = hit.object;
+        this.positionOutline(this.hoverOutline, hit.object);
+        this.tooltip.style.display = "block";
+        const rect = this.stage.getBoundingClientRect();
+        this.tooltip.style.left = `${event.clientX - rect.left}px`;
+        this.tooltip.style.top = `${event.clientY - rect.top}px`;
+        this.tooltip.innerHTML = this.cellText(hit.object.userData).replaceAll(" | ", "<br>");
+      }
+
+      onClick(event) {
+        const hit = this.pick(event);
+        if (!hit) return;
+        if (this.selected === hit.object) {
+          this.clearSelection();
+          return;
+        }
+        this.selected = hit.object;
+        this.positionOutline(this.selectedOutline, hit.object);
+        this.info.textContent = this.cellText(hit.object.userData);
+      }
+
+      pick(event) {
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        this.raycaster.setFromCamera(this.pointer, this.camera);
+        return this.raycaster.intersectObjects(this.cellMeshes, false)[0] || null;
+      }
+
+      cellText(data) {
+        let text = `grid[${data.row}][${data.col}] = ${data.value}`;
+        if (data.expected !== undefined && data.incorrect) {
+          text += ` | output: ${data.value} | expected: ${data.expected}`;
+        }
+        return text;
+      }
+
+      clearHover() {
+        this.hovered = null;
+        this.hoverOutline.visible = false;
+        this.tooltip.style.display = "none";
+      }
+
+      clearSelection(updateInfo = true) {
+        this.selected = null;
+        this.selectedOutline.visible = false;
+        if (updateInfo) this.info.textContent = "Click a voxel to pin row, col, value.";
+      }
+
+      applyViewLimits(view) {
+        if (view === "top") {
+          this.controls.minPolarAngle = 0;
+          this.controls.maxPolarAngle = 0.001;
+          this.controls.minAzimuthAngle = -Infinity;
+          this.controls.maxAzimuthAngle = Infinity;
+        } else {
+          this.controls.minPolarAngle = THREE.MathUtils.degToRad(25);
+          this.controls.maxPolarAngle = THREE.MathUtils.degToRad(82);
+          this.controls.minAzimuthAngle = THREE.MathUtils.degToRad(0);
+          this.controls.maxAzimuthAngle = THREE.MathUtils.degToRad(90);
+        }
+      }
+
+      setView(view, animated = true) {
+        let position;
+        let up = new THREE.Vector3(0, 1, 0);
+        if (view === "top") {
+          position = new THREE.Vector3(0, 28, 0.001);
+          up = new THREE.Vector3(0, 0, -1);
+        } else {
+          position = new THREE.Vector3(13.5, 14, 13.5);
+        }
+        const target = new THREE.Vector3(0, 0, 0);
+        if (!animated) {
+          this.camera.position.copy(position);
+          this.camera.up.copy(up);
+          this.controls.target.copy(target);
+          this.camera.lookAt(target);
+          this.applyViewLimits(view);
+          this.controls.update();
+          this.camera.updateProjectionMatrix();
+          return;
+        }
+        const startPos = this.camera.position.clone();
+        const startUp = this.camera.up.clone();
+        const startTarget = this.controls.target.clone();
+        const start = performance.now();
+        const duration = 420;
+        this.isAnimatingCamera = true;
+        const step = (now) => {
+          const t = Math.min(1, (now - start) / duration);
+          const e = 1 - Math.pow(1 - t, 3);
+          this.camera.position.lerpVectors(startPos, position, e);
+          this.camera.up.lerpVectors(startUp, up, e).normalize();
+          this.controls.target.lerpVectors(startTarget, target, e);
+          this.camera.lookAt(this.controls.target);
+          this.applyViewLimits(view);
+          this.controls.update();
+          if (t < 1) requestAnimationFrame(step);
+          else {
+            this.isAnimatingCamera = false;
+            if (this.onCameraChange) this.onCameraChange(this);
+          }
+        };
+        requestAnimationFrame(step);
+      }
+
+      syncFrom(other) {
+        this.suppressCameraChange = true;
+        try {
+          this.camera.position.copy(other.camera.position);
+          this.camera.up.copy(other.camera.up);
+          this.camera.zoom = other.camera.zoom;
+          this.controls.target.copy(other.controls.target);
+          this.camera.updateProjectionMatrix();
+          this.controls.update();
+        } finally {
+          this.suppressCameraChange = false;
+        }
+      }
+
+      resize() {
+        const rect = this.stage.getBoundingClientRect();
+        const w = Math.max(320, Math.floor(rect.width));
+        const h = Math.max(260, Math.floor(rect.height));
+        if (w === this.renderWidth && h === this.renderHeight) return;
+        this.renderWidth = w;
+        this.renderHeight = h;
+        this.renderer.setSize(w, h, false);
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+      }
+
+      animate() {
+        requestAnimationFrame(() => this.animate());
+        this.controls.update();
+        this.renderer.render(this.scene, this.camera);
+      }
+    }
+
+    function templateCpp() {
+      return `#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 15;
+
+// Valid colors: 1..10. Values <=0 or >10 are empty.
+// Coordinates: grid[x][y], x from top to bottom, y from left to right.
+void generate_shape(vector<vector<int>>& grid) {
+    // TODO: code the pattern to match the target shape
+    // Example:
+    // for (int x = 0; x < N; ++x)
+    //     for (int y = 0; y < N; ++y)
+    //         if (x == y) grid[x][y] = 6;
+}`;
+    }
+
+    function blank() {
+      return Array.from({ length: N }, () => Array(N).fill(0));
+    }
+
+    function seeded(seedValue) {
+      let x = seedValue >>> 0;
+      return () => {
+        x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+        return ((x >>> 0) / 4294967296);
+      };
+    }
+
+    function pal(seedValue, k) {
+      const rng = seeded(seedValue * 2654435761);
+      const pool = [1,2,3,4,5,6,7,8,9,10].sort(() => rng() - 0.5);
+      return pool.slice(0, k);
+    }
+
+    function setCell(g, i, j, v) {
+      if (0 <= i && i < N && 0 <= j && j < N) g[i][j] = v;
+    }
+
+    function colorStep(x, offset = 0) {
+      return ((x + offset) % 10 + 10) % 10 + 1;
+    }
+
+    function addChallengeLayers(g, diff, off, variant) {
+      if (diff < 3) return;
+
+      // Hinh 3: add visible diagonal lanes plus a 5x5 block rhythm.
+      for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+        if ((i + 2 * j + variant) % 5 === 0) {
+          g[i][j] = colorStep(Math.floor((i + 2 * j) / 5) + i % 3, off + 4);
+        }
+        if (Math.floor(i / 5) === Math.floor(j / 5) && (i + j + variant) % 2 === 0) {
+          g[i][j] = colorStep(Math.floor(i / 5) * 3 + (j % 5), off + 1);
+        }
+      }
+
+      if (diff < 4) return;
+
+      // Hinh 4: add a center diamond and two mirrored guide lines.
+      for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+        const diamond = Math.abs(i - 7) + Math.abs(j - 7);
+        if (diamond <= 6 && diamond % 2 === variant % 2) {
+          g[i][j] = colorStep(diamond + Math.floor((i + j) / 3), off + 7);
+        }
+        if (j === (2 * i + variant) % N || j === (14 - 2 * i - variant + 30) % N) {
+          g[i][j] = colorStep(i + j, off + 2);
+        }
+      }
+    }
+
+    function gen(kind, seed, diff) {
+      const g = blank();
+      const off = seed % 10;
+      const variant = Math.floor(seed / 10) % 4;
+
+      if (kind === "bands") {
+        const horizontal = variant % 2 === 0;
+        for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+          const major = horizontal ? Math.floor(i / 2) : Math.floor(j / 2);
+          const minor = horizontal ? Math.floor(j / 5) : Math.floor(i / 5);
+          g[i][j] = colorStep(major + (diff >= 3 ? minor : 0), off);
+        }
+        if (diff >= 2) for (let k = 0; k < N; k++) setCell(g, k, 7, colorStep(k, off + 5));
+        if (diff >= 4) for (let k = 0; k < N; k++) setCell(g, 7, k, colorStep(k, off + 2));
+      } else if (kind === "diagonal") {
+        for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+          g[i][j] = colorStep(i + j, off);
+        }
+        if (diff >= 2) for (let i = 0; i < N; i++) setCell(g, i, i, colorStep(i * 2, off + 1));
+        if (diff >= 3) for (let i = 0; i < N; i++) setCell(g, i, 14 - i, colorStep(i * 2, off + 6));
+        if (diff >= 4) for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+          if ((i + j) % 5 === variant) g[i][j] = colorStep(Math.floor((i + j) / 5) * 2, off + 3);
+        }
+      } else if (kind === "rings") {
+        for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+          const d = Math.max(Math.abs(i - 7), Math.abs(j - 7));
+          g[i][j] = colorStep(d, off);
+        }
+        if (diff >= 2) for (let k = 0; k < N; k++) g[7][k] = g[k][7] = colorStep(k, off + 4);
+        if (diff >= 4) for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+          if (Math.abs(i - 7) === Math.abs(j - 7)) g[i][j] = colorStep(Math.abs(i - 7) * 2, off + 1);
+        }
+      } else if (kind === "blocks") {
+        for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+          const bi = Math.floor(i / 3), bj = Math.floor(j / 3);
+          g[i][j] = colorStep(bi * 2 + bj, off);
+        }
+        if (diff >= 3) for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+          if (i % 3 === 1 || j % 3 === 1) g[i][j] = colorStep(Math.floor(i / 3) + Math.floor(j / 3), off + 5);
+        }
+      } else if (kind === "checker") {
+        const size = diff <= 2 ? 3 : 2;
+        for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+          const a = Math.floor(i / size), b = Math.floor(j / size);
+          g[i][j] = colorStep((a + b) % 2 ? a + off : b + off + 4);
+        }
+        if (diff >= 2) for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+          if (i === j || i + j === 14) g[i][j] = colorStep(i, off + 2);
+        }
+      } else if (kind === "spiral") {
+        let top = 0, left = 0, bot = 14, right = 14, step = 0;
+        while (top <= bot && left <= right) {
+          for (let j = left; j <= right; j++) setCell(g, top, j, colorStep(step, off));
+          for (let i = top + 1; i <= bot; i++) setCell(g, i, right, colorStep(step + 1, off));
+          for (let j = right - 1; j >= left; j--) setCell(g, bot, j, colorStep(step + 2, off));
+          for (let i = bot - 1; i > top; i--) setCell(g, i, left, colorStep(step + 3, off));
+          top++; left++; bot--; right--; step++;
+        }
+        if (diff >= 3) for (let i = 0; i < N; i++) setCell(g, i, (i + variant * 2) % N, colorStep(i, off + 7));
+      } else {
+        for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+          const e = Math.min(i, j, 14 - i, 14 - j);
+          g[i][j] = colorStep(e * 2, off);
+        }
+        for (let k = 0; k < N; k++) g[7][k] = g[k][7] = colorStep(k, off + 3);
+        if (diff >= 3) for (let i = 0; i < N; i++) g[i][i] = g[i][14 - i] = colorStep(i, off + 6);
+      }
+      addChallengeLayers(g, diff, off, variant);
+      return g;
+    }
+
+    function createProblem(idx, kind, seed) {
+      const point = points[idx];
+      const diff = idx + 1;
+      return {
+        title: `Hinh ${idx + 1}`,
+        point,
+        kind,
+        seed,
+        grid: gen(kind, seed, diff),
+        solved: false,
+        output: blank(),
+        result: null,
+        code: templateCpp(),
+      };
+    }
+
+    function saveCurrentProblemCode() {
+      if (problems[current]) problems[current].code = $("code").value;
+    }
+
+    function makeSet() {
+      const base = Math.floor(Date.now() % 1000000);
+      problems = points.map((pt, idx) => {
+        const kind = problemKinds[(base + idx * 3) % problemKinds.length];
+        const seed = base + idx * 97;
+        return createProblem(idx, kind, seed);
+      });
+      current = 0;
+      startedAt = Date.now();
+      renderProblemList();
+      renderCurrent();
+      applyShotMode();
+    }
+
+    function ensureViewers() {
+      if (targetViewer && outputViewer) return;
+      const syncHandler = (source) => {
+        if (!$("syncCamera").checked || syncing) return;
+        const dest = source === targetViewer ? outputViewer : targetViewer;
+        syncing = true;
+        dest.syncFrom(source);
+        syncing = false;
+      };
+      targetViewer = new Voxel3DViewer({
+        mountId: "targetBoardMount",
+        title: "Target Shape",
+        showLegend: true,
+        onCameraChange: syncHandler,
+      });
+      outputViewer = new Voxel3DViewer({
+        mountId: "outputBoardMount",
+        title: "Your Output",
+        showLegend: false,
+        onCameraChange: syncHandler,
+      });
+    }
+
+    function renderProblemList() {
+      $("problem").innerHTML = problems.map((p, i) => `<option value="${i}">${p.title} - ${p.point}d</option>`).join("");
+      $("problem").value = String(current);
+      $("scoreList").innerHTML = problems.map((p, i) => `
+        <div class="score-card ${i === current ? "active" : ""} ${p.solved ? "solved" : ""}" data-index="${i}">
+          <strong>${p.title} - ${p.point} diem</strong>
+          <div class="score-meta">
+            <span>${p.kind} #${p.seed}</span>
+            <button class="reroll" type="button" data-index="${i}" title="Doi de">&#8635;</button>
+          </div>
+        </div>
+      `).join("");
+      $("scoreList").querySelectorAll(".score-card").forEach((card) => {
+        card.addEventListener("click", () => switchProblem(Number(card.dataset.index)));
+      });
+      $("scoreList").querySelectorAll(".reroll").forEach((btn) => {
+        btn.addEventListener("click", (event) => {
+          event.stopPropagation();
+          rerollProblem(Number(btn.dataset.index));
+        });
+      });
+    }
+
+    function switchProblem(next) {
+      if (!problems[next] || next === current) {
+        renderProblemList();
+        return;
+      }
+      saveCurrentProblemCode();
+      current = next;
+      $("problem").value = String(current);
+      renderCurrent();
+    }
+
+    function rerollProblem(index) {
+      if (!problems[index]) return;
+      if (index === current) saveCurrentProblemCode();
+      const prev = problems[index];
+      const seed = (Date.now() + Math.floor(Math.random() * 1000000) + index * 9973) % 1000000;
+      problems[index] = createProblem(index, prev.kind, seed);
+      if (index === current) {
+        renderCurrent();
+      } else {
+        renderProblemList();
+      }
+    }
+
+    function renderCurrent() {
+      ensureViewers();
+      const p = problems[current];
+      $("problem").value = String(current);
+      lastOutput = p.output || blank();
+      $("targetInfo").textContent = `${p.kind} #${p.seed}`;
+      $("code").value = p.code || templateCpp();
+      syncEditor();
+      syncScroll();
+      targetViewer.updateGrid({ grid: p.grid });
+      outputViewer.updateGrid({
+        grid: lastOutput,
+        incorrectCells: p.result ? diffCells(lastOutput, p.grid) : new Set(),
+        expectedGrid: p.grid,
+      });
+      if (p.result) {
+        updateMetrics(p.result);
+        $("status").textContent = p.result.ok ? "Accepted" : "Wrong Answer";
+        $("message").className = `verdict ${p.result.ok ? "good" : "bad"}`;
+        const invalid = p.result.invalid ? ` ${p.result.invalid} cells outside 1..10.` : "";
+        $("message").textContent = p.result.ok ? "AC: output matches target exactly." : `WA: ${p.result.wrong} wrong cells.${invalid}`;
+        $("log").textContent = p.result.log || "";
+      } else {
+        $("status").textContent = "Ready";
+        $("message").className = "verdict";
+        $("message").textContent = "Press Chay code to compile and render your grid.";
+        $("log").textContent = "";
+        updateMetrics(null);
+      }
+      renderProblemList();
+    }
+
+    function diffCells(grid, compare) {
+      if (!compare) return null;
+      const bad = new Set();
+      for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+        const raw = Number(grid[i]?.[j] || 0);
+        const valid = raw === 0 || (raw >= 1 && raw <= 10);
+        if (!valid || raw !== compare[i][j]) bad.add(`${i},${j}`);
+      }
+      return bad;
+    }
+
+    function updateMetrics(result) {
+      if (!result) {
+        $("verdictText").textContent = "-";
+        $("scoreText").textContent = "0";
+        $("matchText").textContent = "0/225";
+        $("wrongText").textContent = "225";
+        return;
+      }
+      $("verdictText").textContent = result.ok ? "AC" : "WA";
+      $("scoreText").textContent = result.ok ? problems[current].point : 0;
+      $("matchText").textContent = `${result.matched}/225`;
+      $("wrongText").textContent = result.wrong;
+    }
+
+    async function runCode() {
+      const p = problems[current];
+      p.code = $("code").value;
+      $("runBtn").disabled = true;
+      $("status").textContent = "Compiling";
+      $("message").className = "verdict";
+      $("message").textContent = "Compiling C++20...";
+      $("log").textContent = "";
+      try {
+        const res = await fetch("/api/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: $("code").value, target: p.grid })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Run failed");
+        lastOutput = data.grid;
+        p.output = lastOutput;
+        p.result = data;
+        if (data.ok) p.solved = true;
+        outputViewer.updateGrid({
+          grid: lastOutput,
+          incorrectCells: diffCells(lastOutput, p.grid),
+          expectedGrid: p.grid,
+        });
+        updateMetrics(data);
+        $("status").textContent = data.ok ? "Accepted" : "Wrong Answer";
+        $("message").className = `verdict ${data.ok ? "good" : "bad"}`;
+        const invalid = data.invalid ? ` ${data.invalid} cells outside 1..10.` : "";
+        $("message").textContent = data.ok ? "AC: output matches target exactly." : `WA: ${data.wrong} wrong cells.${invalid}`;
+        $("log").textContent = data.log || "";
+        renderProblemList();
+      } catch (err) {
+        $("status").textContent = "Error";
+        $("message").className = "verdict bad";
+        $("message").textContent = err.message;
+        $("log").textContent = err.message;
+      } finally {
+        $("runBtn").disabled = false;
+      }
+    }
+
+    function matrixText(g) {
+      return g.map(r => "{" + r.map(v => String(v).padStart(2, " ")).join(", ") + "}").join(",\n");
+    }
+
+    function tick() {
+      const left = Math.max(0, 600 - Math.floor((Date.now() - startedAt) / 1000));
+      $("timer").textContent = `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`;
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
+    }
+
+    function highlightCode(code) {
+      let html = escapeHtml(code);
+      html = html.replace(/(^|\n)(\s*#\s*\w+[^\n]*)/g, '$1<span class="tok-pre">$2</span>');
+      html = html.replace(/("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/g, '<span class="tok-str">$1</span>');
+      html = html.replace(/(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/g, '<span class="tok-com">$1</span>');
+      html = html.replace(/\b(vector|string|int|long|double|float|bool|char|void|const|auto)\b/g, '<span class="tok-type">$1</span>');
+      html = html.replace(/\b(for|if|else|while|return|using|namespace|include|switch|case|break|continue)\b/g, '<span class="tok-kw">$1</span>');
+      html = html.replace(/\b(-?\d+)\b/g, '<span class="tok-num">$1</span>');
+      return html + "\n";
+    }
+
+    function syncEditor() {
+      const code = $("code").value;
+      $("highlight").innerHTML = highlightCode(code);
+      const lines = Math.max(1, code.split("\n").length);
+      $("lineNums").textContent = Array.from({ length: lines }, (_, i) => i + 1).join("\n");
+    }
+
+    function syncScroll() {
+      $("highlight").scrollTop = $("code").scrollTop;
+      $("highlight").scrollLeft = $("code").scrollLeft;
+      $("lineNums").scrollTop = $("code").scrollTop;
+    }
+
+    function insertAtCursor(text) {
+      const el = $("code");
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      el.value = el.value.slice(0, start) + text + el.value.slice(end);
+      el.selectionStart = el.selectionEnd = start + text.length;
+      syncEditor();
+      syncScroll();
+    }
+
+    function setCodeValue(value, start, end = start) {
+      const el = $("code");
+      el.value = value;
+      el.selectionStart = start;
+      el.selectionEnd = end;
+      syncEditor();
+      syncScroll();
+    }
+
+    function lineStartAt(text, pos) {
+      return text.lastIndexOf("\n", Math.max(0, pos - 1)) + 1;
+    }
+
+    function lineEndAt(text, pos) {
+      const end = text.indexOf("\n", pos);
+      return end === -1 ? text.length : end;
+    }
+
+    function selectedLineRange(text, start, end) {
+      const from = lineStartAt(text, start);
+      const adjustedEnd = end > start && text[end - 1] === "\n" ? end - 1 : end;
+      return { from, to: lineEndAt(text, adjustedEnd) };
+    }
+
+    function handleEditorKeydown(event) {
+      const el = $("code");
+      const text = el.value;
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const pairs = { "(": ")", "[": "]", "{": "}", "\"": "\"", "'": "'" };
+      const closers = new Set(Object.values(pairs));
+
+      if (closers.has(event.key) && start === end && text[start] === event.key) {
+        event.preventDefault();
+        setCodeValue(text, start + 1);
+        return;
+      }
+
+      if (pairs[event.key] && !event.ctrlKey && !event.altKey && !event.metaKey) {
+        event.preventDefault();
+        const close = pairs[event.key];
+        const selected = text.slice(start, end);
+        setCodeValue(text.slice(0, start) + event.key + selected + close + text.slice(end), start + 1, start + 1 + selected.length);
+        return;
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        const rowStart = lineStartAt(text, start);
+        const currentIndent = (text.slice(rowStart, start).match(/^\s*/) || [""])[0];
+        const before = text.slice(0, start);
+        const after = text.slice(end);
+        const beforeTrim = before.trimEnd();
+        const addIndent = beforeTrim.endsWith("{") ? "    " : "";
+        if (start === end && text[start - 1] === "{" && text[start] === "}") {
+          const inner = "\n" + currentIndent + "    ";
+          const outer = "\n" + currentIndent;
+          setCodeValue(before + inner + outer + after, start + inner.length);
+        } else {
+          const insert = "\n" + currentIndent + addIndent;
+          setCodeValue(before + insert + after, start + insert.length);
+        }
+        return;
+      }
+
+      if (event.key === "Tab") {
+        event.preventDefault();
+        if (!event.shiftKey && start === end) {
+          setCodeValue(text.slice(0, start) + "    " + text.slice(end), start + 4);
+          return;
+        }
+
+        const { from, to } = selectedLineRange(text, start, end);
+        const block = text.slice(from, to);
+        const lines = block.split("\n");
+        if (event.shiftKey) {
+          let removedBeforeStart = 0;
+          let removedBeforeEnd = 0;
+          let cursor = from;
+          const out = lines.map((line) => {
+            const remove = line.startsWith("    ") ? 4 : Math.min(line.match(/^ */)[0].length, 4);
+            if (cursor < start) removedBeforeStart += Math.min(remove, start - cursor);
+            if (cursor < end) removedBeforeEnd += Math.min(remove, end - cursor);
+            cursor += line.length + 1;
+            return line.slice(remove);
+          }).join("\n");
+          setCodeValue(text.slice(0, from) + out + text.slice(to), Math.max(from, start - removedBeforeStart), Math.max(from, end - removedBeforeEnd));
+        } else {
+          const out = lines.map(line => "    " + line).join("\n");
+          const lineCount = lines.length;
+          const newStart = start === from ? start : start + 4;
+          const newEnd = end + 4 * lineCount;
+          setCodeValue(text.slice(0, from) + out + text.slice(to), newStart, newEnd);
+        }
+        return;
+      }
+
+      if (event.key === "Backspace" && start === end) {
+        const emptyPairs = ["()", "[]", "{}", "\"\"", "''"];
+        if (emptyPairs.includes(text.slice(start - 1, start + 1))) {
+          event.preventDefault();
+          setCodeValue(text.slice(0, start - 1) + text.slice(start + 1), start - 1);
+          return;
+        }
+
+        const rowStart = lineStartAt(text, start);
+        const beforeCursor = text.slice(rowStart, start);
+        if (/^ +$/.test(beforeCursor) && beforeCursor.length >= 4 && beforeCursor.endsWith("    ")) {
+          event.preventDefault();
+          setCodeValue(text.slice(0, start - 4) + text.slice(start), start - 4);
+        }
+      }
+    }
+
+    function initSplitter() {
+      const splitter = $("splitter");
+      if (!splitter) return;
+
+      const readSavedWidth = () => {
+        try {
+          const saved = localStorage.getItem("voxelLeftPane");
+          const match = saved && saved.match(/^(\d+(?:\.\d+)?)%$/);
+          if (!match) return null;
+          const pct = Number(match[1]);
+          if (!Number.isFinite(pct) || pct < 25 || pct > 82) return null;
+          return `${pct}%`;
+        } catch {
+          return null;
+        }
+      };
+      const saveWidth = (value) => {
+        try { localStorage.setItem("voxelLeftPane", value); } catch {}
+      };
+
+      const saved = readSavedWidth();
+      if (saved) document.documentElement.style.setProperty("--left-pane", saved);
+
+      splitter.addEventListener("pointerdown", (event) => {
+        if (window.matchMedia("(max-width: 1050px)").matches) return;
+        event.preventDefault();
+        splitter.setPointerCapture(event.pointerId);
+        document.body.classList.add("resizing");
+      });
+
+      splitter.addEventListener("pointermove", (event) => {
+        if (!document.body.classList.contains("resizing")) return;
+        const main = document.querySelector("main");
+        const rect = main.getBoundingClientRect();
+        const pct = ((event.clientX - rect.left) / rect.width) * 100;
+        const clamped = Math.max(25, Math.min(82, pct));
+        const value = `${clamped.toFixed(1)}%`;
+        document.documentElement.style.setProperty("--left-pane", value);
+        saveWidth(value);
+      });
+
+      const stop = () => document.body.classList.remove("resizing");
+      splitter.addEventListener("pointerup", stop);
+      splitter.addEventListener("pointercancel", stop);
+    }
+
+    function applyShotMode() {
+      const params = new URLSearchParams(location.search);
+      const shot = params.get("shot");
+      if (!shot || !targetViewer) return;
+      requestAnimationFrame(() => {
+        if (shot === "top") targetViewer.setView("top", false);
+        if (shot === "rotated") {
+          targetViewer.camera.position.set(-13, 10, 9);
+          targetViewer.controls.target.set(0, 0, 0);
+          targetViewer.controls.update();
+        }
+        if (shot === "wrong") {
+          const p = problems[current];
+          const wrong = blank();
+          for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if ((i + j) % 5 === 0) wrong[i][j] = 6;
+          lastOutput = wrong;
+          outputViewer.updateGrid({ grid: wrong, incorrectCells: diffCells(wrong, p.grid), expectedGrid: p.grid });
+          updateMetrics({ ok: false, matched: 0, wrong: 225 });
+        }
+      });
+    }
+
+    $("code").value = templateCpp();
+    syncEditor();
+    $("newBtn").addEventListener("click", makeSet);
+    $("problem").addEventListener("change", () => switchProblem(Number($("problem").value || 0)));
+    $("runBtn").addEventListener("click", runCode);
+    $("loadCpp").addEventListener("click", () => { $("code").value = templateCpp(); syncEditor(); });
+    $("code").addEventListener("input", syncEditor);
+    $("code").addEventListener("scroll", syncScroll);
+    $("code").addEventListener("keydown", handleEditorKeydown);
+    $("revealBtn").addEventListener("click", () => {
+      $("log").textContent = matrixText(problems[current].grid);
+      $("message").className = "verdict";
+      $("message").textContent = "Target matrix revealed.";
+    });
+    setInterval(tick, 250);
+    makeSet();
+    initSplitter();
+  </script>
+</body>
+</html>
