@@ -580,6 +580,14 @@
       '"': "&quot;",
       "'": "&#39;",
     }[ch]));
+    const apiParam = new URLSearchParams(location.search).get("api");
+    if (apiParam) {
+      try { localStorage.setItem("voxelApiBase", apiParam.replace(/\/+$/, "")); } catch {}
+    }
+    const apiBase = (() => {
+      try { return (localStorage.getItem("voxelApiBase") || "").replace(/\/+$/, ""); } catch { return ""; }
+    })();
+    const apiUrl = (path) => `${apiBase}${path}`;
 
     class Voxel3DViewer {
       constructor({ mountId, title, showLegend = false, onCameraChange = null }) {
@@ -2079,7 +2087,7 @@ void generate_shape(vector<vector<int>>& grid) {
       $("message").textContent = "Compiling C++20...";
       $("log").textContent = "";
       try {
-        const res = await fetch("/api/run", {
+        const res = await fetch(apiUrl("/api/run"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ code: p.code, target: p.grid })

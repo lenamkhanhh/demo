@@ -1,4 +1,5 @@
 import json
+import os
 import pathlib
 import re
 import subprocess
@@ -98,6 +99,9 @@ class Handler(SimpleHTTPRequestHandler):
         return str(ROOT / clean)
 
     def end_headers(self):
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
         self.send_header("Pragma", "no-cache")
         self.send_header("Expires", "0")
@@ -137,10 +141,16 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as exc:
             self.send_json({"error": str(exc)}, 400)
 
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.end_headers()
+
 
 def main():
-    httpd = ThreadingHTTPServer(("127.0.0.1", 8787), Handler)
-    print("VoxelCode local judge: http://127.0.0.1:8787")
+    host = os.environ.get("HOST", "127.0.0.1")
+    port = int(os.environ.get("PORT", "8787"))
+    httpd = ThreadingHTTPServer((host, port), Handler)
+    print(f"VoxelCode judge: http://{host}:{port}")
     httpd.serve_forever()
 
 
