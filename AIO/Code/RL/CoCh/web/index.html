@@ -54,12 +54,15 @@
     }
     main {
       display: grid;
-      grid-template-columns: minmax(360px, var(--left-pane)) 8px minmax(260px, 1fr);
+      grid-template-columns: minmax(360px, var(--left-pane)) 8px minmax(0, 1fr);
       gap: 6px;
       padding: 10px;
+      width: 100%;
       max-width: 1600px;
       margin: 0 auto;
+      overflow: hidden;
     }
+    main > * { min-width: 0; }
     body.resizing { cursor: col-resize; user-select: none; }
     .splitter {
       width: 8px;
@@ -107,6 +110,7 @@
     button.primary { background: var(--green); border-color: var(--green); color: #07150b; }
     button.purple { background: var(--purple); border-color: var(--purple); color: white; }
     button:disabled { opacity: .6; cursor: wait; }
+    #setMode { max-width: 210px; }
     label.toggle {
       display: inline-flex;
       align-items: center;
@@ -119,76 +123,25 @@
       display: grid;
       grid-template-rows: auto auto auto;
       align-content: start;
-    }
-    .editor {
       position: relative;
-      display: grid;
-      grid-template-columns: 46px 1fr;
+      z-index: 2;
+    }
+    .left-panel > .head {
+      position: relative;
+      z-index: 3;
+      flex-wrap: nowrap;
+    }
+    .left-panel > .head .row {
+      flex: 0 0 auto;
+      flex-wrap: nowrap;
+    }
+    .editor-monaco {
+      width: 100%;
       height: clamp(520px, 62vh, 680px);
       min-height: 0;
       background: #0b1020;
-      overflow: hidden;
     }
-    .line-nums {
-      padding: 12px 8px;
-      padding-bottom: calc(100% - 30px);
-      text-align: right;
-      color: #60708a;
-      background: #090e1b;
-      border-right: 1px solid #1e293b;
-      font: 13px/1.5 "Cascadia Mono", Consolas, monospace;
-      user-select: none;
-      overflow: hidden;
-      white-space: pre;
-    }
-    .code-pane {
-      position: relative;
-      min-width: 0;
-      min-height: 0;
-      height: 100%;
-      overflow: hidden;
-    }
-    .highlight, textarea {
-      width: 100%;
-      height: 100%;
-      min-height: 0;
-      margin: 0;
-      white-space: pre;
-      overflow-wrap: normal;
-      word-break: normal;
-      tab-size: 4;
-      font: 13px/1.5 "Cascadia Mono", Consolas, monospace;
-    }
-    .highlight {
-      position: absolute;
-      inset: 0;
-      padding: 12px 14px;
-      padding-bottom: calc(100% - 30px);
-      overflow: auto;
-      pointer-events: none;
-      color: #d8f6df;
-      background: #0b1020;
-    }
-    textarea {
-      position: absolute;
-      inset: 0;
-      resize: none;
-      border: 0;
-      outline: 0;
-      padding: 12px 14px;
-      padding-bottom: calc(100% - 30px);
-      background: transparent;
-      color: transparent;
-      caret-color: #ffffff;
-      overflow: auto;
-    }
-    textarea::selection { background: rgba(124, 58, 237, .38); color: transparent; }
-    .tok-kw { color: #a78bfa; font-weight: 700; }
-    .tok-type { color: #67e8f9; }
-    .tok-num { color: #fbbf24; }
-    .tok-str { color: #86efac; }
-    .tok-com { color: #64748b; font-style: italic; }
-    .tok-pre { color: #fb7185; }
+    .monaco-function-call { color: #7dd3fc !important; font-weight: 650; }
     .score-list {
       padding: 10px;
       display: grid;
@@ -222,6 +175,11 @@
     }
     .score-card strong { font-size: 13px; }
     .score-card span { color: var(--muted); font-size: 12px; }
+    .score-card .practice-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     .score-meta {
       display: flex;
       align-items: center;
@@ -241,11 +199,23 @@
       display: grid;
       grid-template-rows: auto auto 1fr;
       gap: 10px;
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+    }
+    .viewer,
+    .result-pane,
+    .viewer-body,
+    .result-body,
+    .viewer3d,
+    .viewer3d-stage {
+      min-width: 0;
+      max-width: 100%;
     }
     .viewer {
       background: var(--cream);
       color: #1f2937;
-      min-height: 500px;
+      overflow: hidden;
     }
     .viewer .head {
       background: #f5eedb;
@@ -254,9 +224,9 @@
     }
     .viewer-body {
       padding: 12px;
+      overflow: hidden;
     }
     .result-pane {
-      min-height: 390px;
       background: var(--panel);
     }
     .result-body {
@@ -311,20 +281,23 @@
     }
     .viewer3d-stage {
       position: relative;
-      min-height: 470px;
+      height: clamp(360px, 48vh, 560px);
+      min-height: 360px;
       border-radius: 8px;
       border: 1px solid rgba(50, 42, 30, .25);
       overflow: hidden;
+      contain: layout paint size;
       background: #eee4cb;
     }
     .result-pane .viewer3d-stage {
-      min-height: 330px;
+      height: clamp(280px, 34vh, 390px);
+      min-height: 280px;
       background: #162235;
       border-color: var(--line);
     }
     .viewer3d canvas {
-      width: 100%;
-      height: 100%;
+      width: 100% !important;
+      height: 100% !important;
       display: block;
       outline: none;
     }
@@ -417,12 +390,12 @@
     @media (max-width: 1050px) {
       main { grid-template-columns: 1fr; }
       .splitter { display: none; }
-      .editor { height: 520px; }
+      .editor-monaco { height: 520px; }
       .result-body { grid-template-columns: 1fr; }
       .viewer3d { grid-template-columns: 1fr; }
       .viewer3d-legend { grid-template-columns: repeat(5, max-content); padding-left: 4px; }
-      .viewer3d-stage { min-height: 420px; }
-      .result-pane .viewer3d-stage { min-height: 360px; }
+      .viewer3d-stage { height: 420px; min-height: 320px; }
+      .result-pane .viewer3d-stage { height: 340px; min-height: 260px; }
     }
   </style>
 </head>
@@ -431,6 +404,10 @@
     <div class="brand"><div class="logo">V</div><span>VoxelCode</span></div>
     <div class="row">
       <span id="timer" class="pill">10:00</span>
+      <select id="setMode" title="Che do tao de">
+        <option value="contest10">Contest 10 phút - 4 bài</option>
+        <option value="practice">Practice nâng cao</option>
+      </select>
       <select id="problem"></select>
       <label class="toggle"><input id="syncCamera" type="checkbox"> Sync Camera</label>
       <button id="newBtn" type="button">New Set</button>
@@ -446,13 +423,7 @@
           <button id="runBtn" class="primary" type="button">Chay code</button>
         </div>
       </div>
-      <div class="editor">
-        <div id="lineNums" class="line-nums">1</div>
-        <div class="code-pane">
-          <pre id="highlight" class="highlight" aria-hidden="true"></pre>
-          <textarea id="code" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off"></textarea>
-        </div>
-      </div>
+      <div id="codeEditor" class="editor-monaco"></div>
       <div class="score-list" id="scoreList"></div>
     </section>
 
@@ -514,6 +485,7 @@
       }
     }
   </script>
+  <script src="./vendor/monaco-editor/min/vs/loader.js"></script>
   <script type="module">
     import * as THREE from "three";
     import { OrbitControls } from "./vendor/OrbitControls.js";
@@ -525,16 +497,89 @@
       "#3977d6", "#7b54d6", "#cc4fb3", "#8b5a2b", "#202733"
     ];
     const points = [10, 20, 30, 40];
-    const problemKinds = ["bands", "diagonal", "rings", "blocks", "checker", "spiral", "frame"];
+    const patternPools = {
+      1: ["square_target", "simple_diamond", "framed_checker"],
+      2: ["diamond_cross", "rings_axis", "mirror_frame"],
+      3: [
+        "diagonal_wave_shift",
+        "diagonal_ladders",
+        "expanding_x_bands",
+        "ripple_columns_from_diagonal_seeds",
+      ],
+      4: [
+        "zigzag_islands",
+        "diamond_bfs_islands",
+        "stepped_diagonal_corridor",
+        "multi_source_cross_expansion",
+      ],
+    };
+    const contestPools = {
+      1: ["framed_checker_easy", "simple_rings_cross", "basic_diagonal_band"],
+      2: ["diamond_cross_easy", "mirror_frame_easy", "block_checker_cross"],
+      3: ["expanding_x_bands_easy", "diagonal_ladders_easy", "diamond_bfs_islands_easy"],
+      4: ["nested_frames_gates_easy", "square_spiral_easy", "ripple_columns_easy"],
+    };
+    const palettes = {
+      framed_checker_easy: [10, 2, 4, 6],
+      simple_rings_cross: [10, 3, 6, 1],
+      basic_diagonal_band: [10, 5, 8],
+      diamond_cross_easy: [10, 2, 4, 7],
+      mirror_frame_easy: [10, 3, 6, 1],
+      block_checker_cross: [10, 2, 5, 7],
+      expanding_x_bands_easy: [10, 2, 4, 1, 6],
+      diagonal_ladders_easy: [10, 3, 6, 8],
+      diamond_bfs_islands_easy: [10, 2, 4, 6, 1],
+      nested_frames_gates_easy: [10, 2, 4, 6, 1],
+      square_spiral_easy: [10, 2, 1],
+      ripple_columns_easy: [10, 2, 5, 7],
+      diagonal_wave_shift: [10, 6, 1, 3, 5],
+      diagonal_ladders: [10, 2, 6, 8],
+      expanding_x_bands: [10, 1, 4, 7],
+      ripple_columns_from_diagonal_seeds: [10, 3, 6, 9],
+      zigzag_islands: [10, 5, 2, 7, 1],
+      diamond_bfs_islands: [10, 6, 3, 8, 1],
+      stepped_diagonal_corridor: [10, 4, 2, 6],
+      multi_source_cross_expansion: [10, 1, 5, 8, 3],
+      nested_frames_gates: [10, 2, 4, 6, 8, 1],
+      square_spiral_maze: [10, 2, 6, 1],
+    };
+    const practiceDeck = [
+      { kind: "diagonal_wave_shift", label: "1. Diagonal Wave Shift", point: 30, diff: 3 },
+      { kind: "diagonal_ladders", label: "2. Diagonal Ladders", point: 30, diff: 3 },
+      { kind: "expanding_x_bands", label: "3. Expanding X Bands", point: 30, diff: 3 },
+      { kind: "ripple_columns_from_diagonal_seeds", label: "4. Ripple Columns from Diagonal Seeds", point: 30, diff: 3 },
+      { kind: "diamond_bfs_islands", label: "5. Diamond BFS Islands", point: 40, diff: 4 },
+      { kind: "zigzag_islands", label: "6. Zigzag Islands", point: 40, diff: 4 },
+      { kind: "multi_source_cross_expansion", label: "7. Multi-source Cross Expansion", point: 40, diff: 4 },
+      { kind: "stepped_diagonal_corridor", label: "8. Stepped Diagonal Corridor", point: 40, diff: 4 },
+      { kind: "nested_frames_gates", label: "9. Nested Frames with Rotating Gates", point: 40, diff: 4 },
+      { kind: "square_spiral_maze", label: "10. Square Spiral Maze", point: 40, diff: 4 },
+    ];
+    const knownPatternKinds = new Set([
+      ...Object.values(patternPools).flat(),
+      ...Object.values(contestPools).flat(),
+      ...practiceDeck.map((item) => item.kind),
+    ]);
     let problems = [];
     let current = 0;
+    let setMode = "contest10";
+    let practiceCursor = 0;
     let lastOutput = Array.from({ length: N }, () => Array(N).fill(0));
     let startedAt = Date.now();
     let targetViewer = null;
     let outputViewer = null;
     let syncing = false;
+    let codeEditor = null;
+    let functionDecorations = null;
 
     const $ = (id) => document.getElementById(id);
+    const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (ch) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    }[ch]));
 
     class Voxel3DViewer {
       constructor({ mountId, title, showLegend = false, onCameraChange = null }) {
@@ -935,10 +980,9 @@
       }
 
       resize() {
-        const rect = this.stage.getBoundingClientRect();
-        const w = Math.max(320, Math.floor(rect.width));
-        const h = Math.max(260, Math.floor(rect.height));
-        if (w === this.renderWidth && h === this.renderHeight) return;
+        const w = Math.max(240, Math.floor(this.stage.clientWidth));
+        const h = Math.max(220, Math.floor(this.stage.clientHeight));
+        if (!w || !h) return;
         this.renderWidth = w;
         this.renderHeight = h;
         this.renderer.setSize(w, h, false);
@@ -970,22 +1014,190 @@ void generate_shape(vector<vector<int>>& grid) {
 }`;
     }
 
+    function registerCppCompletions(monacoApi) {
+      const keywordSuggestions = [
+        ["max", monacoApi.languages.CompletionItemKind.Function],
+        ["min", monacoApi.languages.CompletionItemKind.Function],
+        ["abs", monacoApi.languages.CompletionItemKind.Function],
+        ["sort", monacoApi.languages.CompletionItemKind.Function],
+        ["reverse", monacoApi.languages.CompletionItemKind.Function],
+        ["swap", monacoApi.languages.CompletionItemKind.Function],
+        ["fill", monacoApi.languages.CompletionItemKind.Function],
+        ["vector", monacoApi.languages.CompletionItemKind.Class],
+        ["string", monacoApi.languages.CompletionItemKind.Class],
+        ["pair", monacoApi.languages.CompletionItemKind.Class],
+        ["map", monacoApi.languages.CompletionItemKind.Class],
+        ["set", monacoApi.languages.CompletionItemKind.Class],
+        ["queue", monacoApi.languages.CompletionItemKind.Class],
+        ["stack", monacoApi.languages.CompletionItemKind.Class],
+        ["push_back", monacoApi.languages.CompletionItemKind.Method],
+        ["size", monacoApi.languages.CompletionItemKind.Method],
+        ["begin", monacoApi.languages.CompletionItemKind.Method],
+        ["end", monacoApi.languages.CompletionItemKind.Method],
+        ["cout", monacoApi.languages.CompletionItemKind.Variable],
+        ["cin", monacoApi.languages.CompletionItemKind.Variable],
+      ];
+
+      const snippetRules = monacoApi.languages.CompletionItemInsertTextRule.InsertAsSnippet;
+      monacoApi.languages.registerCompletionItemProvider("cpp", {
+        triggerCharacters: [".", ">", ":", "("],
+        provideCompletionItems(model, position) {
+          const word = model.getWordUntilPosition(position);
+          const range = {
+            startLineNumber: position.lineNumber,
+            endLineNumber: position.lineNumber,
+            startColumn: word.startColumn,
+            endColumn: word.endColumn,
+          };
+          const suggestions = keywordSuggestions.map(([label, kind]) => ({
+            label,
+            kind,
+            insertText: label,
+            range,
+          }));
+          suggestions.push(
+            {
+              label: "for",
+              kind: monacoApi.languages.CompletionItemKind.Snippet,
+              insertText: "for (int ${1:i} = 0; ${1:i} < N; ++${1:i}) {\n    $0\n}",
+              insertTextRules: snippetRules,
+              documentation: "Loop from 0 to N - 1",
+              range,
+            },
+            {
+              label: "for2d",
+              kind: monacoApi.languages.CompletionItemKind.Snippet,
+              insertText: "for (int ${1:i} = 0; ${1:i} < N; ++${1:i}) {\n    for (int ${2:j} = 0; ${2:j} < N; ++${2:j}) {\n        $0\n    }\n}",
+              insertTextRules: snippetRules,
+              documentation: "Nested loop over the 15 x 15 grid",
+              range,
+            },
+            {
+              label: "grid",
+              kind: monacoApi.languages.CompletionItemKind.Snippet,
+              insertText: "grid[${1:i}][${2:j}] = $0;",
+              insertTextRules: snippetRules,
+              documentation: "Assign one target cell",
+              range,
+            }
+          );
+          return { suggestions };
+        },
+      });
+    }
+
+    function updateFunctionDecorations(monacoApi) {
+      if (!codeEditor || !functionDecorations) return;
+      const model = codeEditor.getModel();
+      if (!model) return;
+
+      const names = /\b(max|min|abs|sort|fill)\b(?=\s*\()/g;
+      const lines = model.getLinesContent();
+      const tokenized = monacoApi.editor.tokenize(model.getValue(), "cpp");
+      const decorations = [];
+
+      const tokenTypeAt = (lineIndex, offset) => {
+        const tokens = tokenized[lineIndex] || [];
+        let found = "";
+        for (let i = 0; i < tokens.length; i++) {
+          const start = tokens[i].offset ?? tokens[i].startIndex ?? 0;
+          const next = tokens[i + 1] ? (tokens[i + 1].offset ?? tokens[i + 1].startIndex ?? lines[lineIndex].length) : lines[lineIndex].length;
+          if (offset >= start && offset < next) {
+            found = tokens[i].type || "";
+            break;
+          }
+        }
+        return found;
+      };
+
+      for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+        names.lastIndex = 0;
+        let match;
+        while ((match = names.exec(lines[lineIndex]))) {
+          const tokenType = tokenTypeAt(lineIndex, match.index);
+          if (tokenType.includes("comment") || tokenType.includes("string")) continue;
+          decorations.push({
+            range: new monacoApi.Range(lineIndex + 1, match.index + 1, lineIndex + 1, match.index + match[0].length + 1),
+            options: { inlineClassName: "monaco-function-call" },
+          });
+        }
+      }
+      functionDecorations.set(decorations);
+    }
+
+    function initMonaco() {
+      return new Promise((resolve, reject) => {
+        if (!window.require) {
+          reject(new Error("Monaco loader is missing"));
+          return;
+        }
+
+        window.require.config({ paths: { vs: "./vendor/monaco-editor/min/vs" } });
+        window.require(["vs/editor/editor.main"], () => {
+          const monacoApi = window.monaco;
+          monacoApi.editor.defineTheme("voxel-dark", {
+            base: "vs-dark",
+            inherit: true,
+            rules: [
+              { token: "keyword", foreground: "a78bfa", fontStyle: "bold" },
+              { token: "type", foreground: "67e8f9" },
+              { token: "number", foreground: "fbbf24" },
+              { token: "string", foreground: "86efac" },
+              { token: "comment", foreground: "64748b", fontStyle: "italic" },
+              { token: "predefined", foreground: "fb7185" },
+            ],
+            colors: {
+              "editor.background": "#0b1020",
+              "editor.foreground": "#d8f6df",
+              "editorLineNumber.foreground": "#60708a",
+              "editorLineNumber.activeForeground": "#dbeafe",
+              "editorCursor.foreground": "#ffffff",
+              "editor.lineHighlightBackground": "#111827",
+              "editor.selectionBackground": "#7c3aed60",
+              "editorIndentGuide.background1": "#233044",
+              "editorIndentGuide.activeBackground1": "#7c3aed",
+            },
+          });
+          registerCppCompletions(monacoApi);
+          codeEditor = monacoApi.editor.create($("codeEditor"), {
+            value: templateCpp(),
+            language: "cpp",
+            theme: "voxel-dark",
+            automaticLayout: true,
+            fontFamily: "Cascadia Mono, Consolas, monospace",
+            fontSize: 13,
+            lineHeight: 20,
+            minimap: { enabled: false },
+            wordWrap: "off",
+            scrollBeyondLastLine: true,
+            tabSize: 4,
+            insertSpaces: true,
+            autoClosingBrackets: "always",
+            autoClosingQuotes: "always",
+            autoIndent: "full",
+            formatOnType: true,
+            bracketPairColorization: { enabled: true },
+            guides: {
+              bracketPairs: true,
+              indentation: true,
+            },
+            suggestOnTriggerCharacters: true,
+            quickSuggestions: true,
+            folding: true,
+            renderLineHighlight: "all",
+            smoothScrolling: true,
+            mouseWheelZoom: true,
+          });
+          functionDecorations = codeEditor.createDecorationsCollection();
+          codeEditor.onDidChangeModelContent(() => updateFunctionDecorations(monacoApi));
+          updateFunctionDecorations(monacoApi);
+          resolve();
+        }, reject);
+      });
+    }
+
     function blank() {
       return Array.from({ length: N }, () => Array(N).fill(0));
-    }
-
-    function seeded(seedValue) {
-      let x = seedValue >>> 0;
-      return () => {
-        x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
-        return ((x >>> 0) / 4294967296);
-      };
-    }
-
-    function pal(seedValue, k) {
-      const rng = seeded(seedValue * 2654435761);
-      const pool = [1,2,3,4,5,6,7,8,9,10].sort(() => rng() - 0.5);
-      return pool.slice(0, k);
     }
 
     function setCell(g, i, j, v) {
@@ -996,113 +1208,669 @@ void generate_shape(vector<vector<int>>& grid) {
       return ((x + offset) % 10 + 10) % 10 + 1;
     }
 
-    function addChallengeLayers(g, diff, off, variant) {
-      if (diff < 3) return;
+    function poolForDiff(diff) {
+      return patternPools[diff] || patternPools[1];
+    }
 
-      // Hinh 3: add visible diagonal lanes plus a 5x5 block rhythm.
-      for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-        if ((i + 2 * j + variant) % 5 === 0) {
-          g[i][j] = colorStep(Math.floor((i + 2 * j) / 5) + i % 3, off + 4);
+    function contestPoolForDiff(diff) {
+      return contestPools[diff] || contestPools[1];
+    }
+
+    function pickFromPool(pool, seed) {
+      return pool[Math.floor(seed / 13) % pool.length];
+    }
+
+    function pickKind(diff, seed) {
+      return pickFromPool(poolForDiff(diff), seed);
+    }
+
+    function pickContestKind(diff, seed) {
+      return pickFromPool(contestPoolForDiff(diff), seed);
+    }
+
+    function validateTargetGrid(grid) {
+      if (!Array.isArray(grid) || grid.length !== N) {
+        throw new Error("Invalid target grid size");
+      }
+      for (let r = 0; r < N; r++) {
+        if (!Array.isArray(grid[r]) || grid[r].length !== N) {
+          throw new Error(`Invalid target row ${r}`);
         }
-        if (Math.floor(i / 5) === Math.floor(j / 5) && (i + j + variant) % 2 === 0) {
-          g[i][j] = colorStep(Math.floor(i / 5) * 3 + (j % 5), off + 1);
+        for (let c = 0; c < N; c++) {
+          if (!Number.isInteger(grid[r][c]) || grid[r][c] < 1 || grid[r][c] > 10) {
+            throw new Error(`Invalid target at [${r}][${c}] = ${grid[r][c]}`);
+          }
+        }
+      }
+    }
+
+    function fillFramedCheckerEasy(g, seed) {
+      const p = palettes.framed_checker_easy;
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        const edge = Math.min(r, col, N - 1 - r, N - 1 - col);
+        if (edge === 0) g[r][col] = p[1];
+        else if (edge === 1) g[r][col] = p[2];
+        else {
+          const br = Math.floor((r - 2) / 3);
+          const bc = Math.floor((col - 2) / 3);
+          g[r][col] = (br + bc) % 2 === 0 ? p[0] : p[3];
+        }
+      }
+    }
+
+    function fillSimpleRingsCross(g, seed) {
+      const p = palettes.simple_rings_cross;
+      const c = Math.floor(N / 2);
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        const layer = Math.max(Math.abs(r - c), Math.abs(col - c));
+        g[r][col] = layer % 2 === 0 ? p[1] : p[0];
+        if (r === c || col === c) g[r][col] = p[2];
+        if (Math.abs(r - c) <= 1 && Math.abs(col - c) <= 1) g[r][col] = p[3];
+      }
+    }
+
+    function fillBasicDiagonalBand(g, seed) {
+      const p = palettes.basic_diagonal_band;
+      const last = N - 1;
+      const anti = seed % 2 === 1;
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        const dist = anti ? Math.abs(r + col - last) : Math.abs(r - col);
+        g[r][col] = dist <= 1 ? p[1] : p[0];
+        if (dist === 0) g[r][col] = p[2];
+      }
+    }
+
+    function fillDiamondCrossEasy(g, seed) {
+      const p = palettes.diamond_cross_easy;
+      const c = Math.floor(N / 2);
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        const diamond = Math.abs(r - c) + Math.abs(col - c);
+        g[r][col] = Math.floor(diamond / 2) % 2 === 0 ? p[1] : p[0];
+        if (r === c || col === c) g[r][col] = p[2];
+        if (Math.abs(r - c) <= 1 && Math.abs(col - c) <= 1) g[r][col] = p[3];
+      }
+    }
+
+    function fillMirrorFrameEasy(g, seed) {
+      const p = palettes.mirror_frame_easy;
+      const last = N - 1;
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        const edge = Math.min(r, col, last - r, last - col);
+        g[r][col] = edge % 2 === 0 ? p[1] : p[0];
+        if (r === col || r + col === last) g[r][col] = p[2];
+        if (edge === 0 && (r === 0 || col === 0)) g[r][col] = p[3];
+      }
+    }
+
+    function fillBlockCheckerCross(g, seed) {
+      const p = palettes.block_checker_cross;
+      const c = Math.floor(N / 2);
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        const br = Math.floor(r / 3);
+        const bc = Math.floor(col / 3);
+        g[r][col] = (br + bc) % 2 === 0 ? p[0] : p[1];
+        if (r === c || col === c) g[r][col] = p[2];
+      }
+      for (let r = c - 1; r <= c + 1; r++) for (let col = c - 1; col <= c + 1; col++) g[r][col] = p[3];
+    }
+
+    function fillExpandingXBandsEasy(g, seed) {
+      const p = palettes.expanding_x_bands_easy;
+      const c = Math.floor(N / 2);
+      const last = N - 1;
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        const width = Math.abs(r - c) <= 3 ? 2 : 1;
+        const onMain = Math.abs(r - col) <= width;
+        const onAnti = Math.abs(r + col - last) <= width;
+        g[r][col] = p[0];
+        if (onMain) g[r][col] = p[1];
+        if (onAnti) g[r][col] = p[2];
+        if (onMain && onAnti) g[r][col] = p[3];
+        if (r === c || col === c) g[r][col] = p[4];
+      }
+    }
+
+    function fillDiagonalLaddersEasy(g, seed) {
+      const p = palettes.diagonal_ladders_easy;
+      const last = N - 1;
+      const mirror = seed % 2 === 1;
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) g[r][col] = p[0];
+
+      for (let r = 1; r < N - 1; r++) {
+        const a = mirror ? last - r : r;
+        const b = mirror ? r : last - r;
+        g[r][a] = p[1];
+        g[r][b] = p[1];
+        if (r % 3 === 1) {
+          for (let d = 0; d <= 2; d++) {
+            setCell(g, r, a + d, p[2]);
+            setCell(g, r, b - d, p[2]);
+          }
+        }
+      }
+      for (let col = 0; col < N; col++) g[Math.floor(N / 2)][col] = p[3];
+    }
+
+    function fillDiamondBfsIslandsEasy(g, seed) {
+      const p = palettes.diamond_bfs_islands_easy;
+      const seeds = [[4, 4], [4, 10], [10, 4], [10, 10]];
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        let best = 99;
+        let count = 0;
+        for (const [sr, sc] of seeds) {
+          const dist = Math.abs(r - sr) + Math.abs(col - sc);
+          if (dist <= 4) {
+            count++;
+            best = Math.min(best, dist);
+          }
+        }
+        g[r][col] = p[0];
+        if (count >= 2) g[r][col] = p[4];
+        else if (best <= 1) g[r][col] = p[1];
+        else if (best === 2) g[r][col] = p[2];
+        else if (best <= 4) g[r][col] = p[3];
+      }
+    }
+
+    function fillNestedFramesGatesEasy(g, seed) {
+      const p = palettes.nested_frames_gates_easy;
+      const c = Math.floor(N / 2);
+      const reverse = seed % 2 === 1;
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) g[r][col] = p[0];
+
+      [0, 2, 4, 6].forEach((layer, idx) => {
+        const top = layer;
+        const left = layer;
+        const bottom = N - 1 - layer;
+        const right = N - 1 - layer;
+        const color = p[1 + idx % 3];
+        for (let col = left; col <= right; col++) {
+          g[top][col] = color;
+          g[bottom][col] = color;
+        }
+        for (let r = top; r <= bottom; r++) {
+          g[r][left] = color;
+          g[r][right] = color;
+        }
+
+        const side = reverse ? (4 - idx) % 4 : idx % 4;
+        for (let t = 0; t < 2; t++) {
+          if (side === 0) setCell(g, top, c + t - 1, p[0]);
+          else if (side === 1) setCell(g, c + t - 1, right, p[0]);
+          else if (side === 2) setCell(g, bottom, c + t - 1, p[0]);
+          else setCell(g, c + t - 1, left, p[0]);
+        }
+      });
+
+      g[c][c] = p[4];
+    }
+
+    function fillSquareSpiralEasy(g, seed) {
+      const p = palettes.square_spiral_easy;
+      const last = N - 1;
+      const mirror = seed % 2 === 1;
+      const put = (r, col, value) => setCell(g, r, mirror ? last - col : col, value);
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) g[r][col] = p[0];
+
+      let top = 0;
+      let left = 0;
+      let bottom = last;
+      let right = last;
+      while (top <= bottom && left <= right) {
+        for (let col = left; col <= right; col++) put(top, col, p[1]);
+        for (let r = top; r <= bottom; r++) put(r, right, p[1]);
+        if (top + 2 <= bottom) {
+          for (let col = right; col >= left + 1; col--) put(bottom, col, p[1]);
+        }
+        if (left + 2 <= right) {
+          for (let r = bottom; r >= top + 2; r--) put(r, left + 1, p[1]);
+        }
+        top += 2;
+        left += 2;
+        bottom -= 2;
+        right -= 2;
+      }
+
+      g[Math.floor(N / 2)][Math.floor(N / 2)] = p[2];
+    }
+
+    function fillRippleColumnsEasy(g, seed) {
+      const p = palettes.ripple_columns_easy;
+      const c = Math.floor(N / 2);
+      const last = N - 1;
+      const anti = seed % 2 === 1;
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) g[r][col] = p[0];
+
+      for (let k = 1; k < N - 1; k += 2) {
+        const row = k;
+        const col = anti ? last - k : k;
+        const len = 1 + Math.floor(Math.min(k, last - k) / 3);
+        const dir = col < c ? 1 : -1;
+        g[row][col] = p[1];
+        for (let t = 1; t <= len; t++) setCell(g, row + dir * t, col, p[2]);
+      }
+
+      for (let r = 0; r < N; r++) g[r][c] = p[3];
+    }
+
+    function fillDiagonalWaveShift(g, seed) {
+      const p = palettes.diagonal_wave_shift;
+      const c = Math.floor(N / 2);
+      const diagonals = seed % 2 ? [-5, -1, 3] : [-6, -2, 2, 6];
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        g[r][col] = Math.floor((r + col) / 3) % 2 ? p[0] : p[1];
+      }
+
+      diagonals.forEach((diag, idx) => {
+        for (let r = 0; r < N; r++) {
+          const col = r - diag;
+          if (col < 0 || col >= N) continue;
+          const wing = 1 + Math.floor(Math.abs(r - c) / 3) + (idx % 2);
+          for (let d = -wing; d <= wing; d++) setCell(g, r, col + d, p[3]);
+          setCell(g, r, col, p[2]);
+        }
+      });
+
+      const side = seed % 2 ? c - 1 : c + 1;
+      for (let r = 0; r < N; r++) {
+        g[r][c] = p[4];
+        g[r][side] = r % 2 ? p[2] : p[3];
+      }
+    }
+
+    function fillDiagonalLadders(g, seed) {
+      const p = palettes.diagonal_ladders;
+      const c = Math.floor(N / 2);
+      const last = N - 1;
+      const slope = seed % 2 ? -1 : 1;
+      const offsets = [-5, 0, 5];
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) g[r][col] = p[0];
+
+      const drawLadder = (offset, idx) => {
+        for (let r = 0; r < N; r++) {
+          const col = slope === 1 ? r + offset : last - r + offset;
+          if (col < 0 || col >= N) continue;
+          setCell(g, r, col, p[1 + idx % 2]);
+          if ((r + idx) % 2 === 0) {
+            const len = 2 + ((r + idx) % 3 === 0 ? 1 : 0);
+            const dir = col < c ? 1 : -1;
+            for (let d = 1; d <= len; d++) setCell(g, r, col + dir * d, p[2]);
+          }
+        }
+      };
+
+      offsets.forEach(drawLadder);
+      for (let col = 0; col < N; col++) g[c][col] = col % 2 ? p[3] : p[2];
+      for (let r = 0; r < N; r++) g[r][c] = r % 2 ? p[3] : p[1];
+    }
+
+    function fillExpandingXBands(g, seed) {
+      const p = palettes.expanding_x_bands;
+      const c = Math.floor(N / 2);
+      const last = N - 1;
+      const widerAtEdge = seed % 2 === 0;
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        const d1 = Math.abs(r - col);
+        const d2 = Math.abs(r + col - last);
+        const edgeLayer = Math.max(Math.abs(r - c), Math.abs(col - c));
+        const thick = 1 + (edgeLayer >= 5 ? 1 : 0) + (widerAtEdge && edgeLayer >= 7 ? 1 : 0);
+        const inMain = d1 <= thick;
+        const inAnti = d2 <= thick;
+        g[r][col] = p[0];
+        if (inMain) g[r][col] = p[1];
+        if (inAnti) g[r][col] = p[2];
+        if (inMain && inAnti) g[r][col] = p[3];
+      }
+
+      for (let k = 0; k < N; k++) {
+        if (g[c][k] !== p[3]) g[c][k] = p[2];
+        if (g[k][c] !== p[3]) g[k][c] = p[1];
+      }
+      for (let r = c - 1; r <= c + 1; r++) for (let col = c - 1; col <= c + 1; col++) g[r][col] = p[3];
+    }
+
+    function fillRippleColumnsFromDiagonalSeeds(g, seed) {
+      const p = palettes.ripple_columns_from_diagonal_seeds;
+      const c = Math.floor(N / 2);
+      const last = N - 1;
+      const useAnti = seed % 2 === 1;
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        g[r][col] = Math.floor((r + col) / 4) % 2 ? p[0] : p[1];
+      }
+
+      for (let r = 1; r < last; r += 2) {
+        const col = useAnti ? last - r : r;
+        const len = 2 + Math.floor(Math.abs(r - c) / 2);
+        const dir = col <= c ? 1 : -1;
+        for (let d = 0; d <= len; d++) setCell(g, r + d * dir, col, p[3]);
+        setCell(g, r, col, p[2]);
+      }
+
+      for (let col = 0; col < N; col++) g[c][col] = col % 2 ? p[2] : p[3];
+    }
+
+    function fillZigzagIslands(g, seed) {
+      const p = palettes.zigzag_islands;
+      const c = Math.floor(N / 2);
+      const flip = seed % 2 === 1;
+      const seeds = flip
+        ? [[2, 12, -1, 5], [5, 9, 1, 4], [9, 6, -1, 5], [12, 2, 1, 4]]
+        : [[2, 2, 1, 5], [5, 5, -1, 4], [9, 8, 1, 5], [12, 12, -1, 4]];
+      const hits = blank();
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) g[r][col] = p[0];
+
+      seeds.forEach(([sr, sc, dir, radius], idx) => {
+        for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+          const dr = r - sr;
+          const dc = col - sc;
+          const dist = Math.abs(dr) + Math.abs(dc);
+          const zig = Math.abs(dr - dir * dc);
+          if (dist <= radius && zig <= 2 + Math.floor(dist / 4)) {
+            hits[r][col]++;
+            g[r][col] = hits[r][col] > 1 ? p[4] : p[1 + (idx + Math.floor(dist / 2)) % 3];
+          }
+        }
+      });
+
+      for (let k = 0; k < N; k++) {
+        g[c][k] = hits[c][k] ? p[4] : p[3];
+        g[k][c] = hits[k][c] ? p[4] : p[2];
+      }
+    }
+
+    function fillDiamondBfsIslands(g, seed) {
+      const p = palettes.diamond_bfs_islands;
+      const c = Math.floor(N / 2);
+      const shift = Math.floor(seed / 17) % 3 - 1;
+      const seeds = [
+        [3 + shift, 3, 5],
+        [3, 11 - shift, 5],
+        [11, 3 + shift, 5],
+        [10 - shift, 10, 6],
+      ];
+      const counts = blank();
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        let best = 99;
+        let count = 0;
+        for (const [sr, sc, radius] of seeds) {
+          const dist = Math.abs(r - sr) + Math.abs(col - sc);
+          if (dist <= radius) {
+            best = Math.min(best, dist);
+            count++;
+          }
+        }
+        counts[r][col] = count;
+        g[r][col] = count === 0 ? p[0] : count > 1 ? p[4] : p[1 + Math.floor(best / 2) % 3];
+      }
+
+      for (let k = 0; k < N; k++) {
+        g[c][k] = counts[c][k] ? p[4] : p[3];
+        g[k][c] = counts[k][c] ? p[4] : p[2];
+      }
+    }
+
+    function fillSteppedDiagonalCorridor(g, seed) {
+      const p = palettes.stepped_diagonal_corridor;
+      const c = Math.floor(N / 2);
+      const last = N - 1;
+      const flip = seed % 2 === 1;
+      const segmentShift = [0, 1, 1, 0, -1];
+
+      for (let col = 0; col < N; col++) {
+        const base = flip ? last - col : col;
+        const centerRow = Math.max(0, Math.min(last, base + segmentShift[Math.floor(col / 3)]));
+        for (let r = 0; r < N; r++) {
+          const dist = Math.abs(r - centerRow);
+          g[r][col] = r < centerRow ? p[0] : p[1];
+          if (dist <= 1) g[r][col] = p[2];
+          else if (dist === 2) g[r][col] = p[3];
+          if (col === c && dist > 2) g[r][col] = p[3];
+        }
+      }
+    }
+
+    function fillMultiSourceCrossExpansion(g, seed) {
+      const p = palettes.multi_source_cross_expansion;
+      const c = Math.floor(N / 2);
+      const last = N - 1;
+      const flip = seed % 2 === 1;
+      const baseRows = [2, 5, 7, 10, 12];
+      const lengths = [3, 4, 5, 4, 3];
+      const hits = blank();
+      const assigned = blank();
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) g[r][col] = p[0];
+      for (let r = 0; r < N; r++) setCell(g, r, flip ? last - r : r, p[1]);
+
+      baseRows.forEach((sr, idx) => {
+        const sc = flip ? last - sr : sr;
+        const len = lengths[idx];
+        const color = p[1 + idx % 3];
+        for (let d = -len; d <= len; d++) {
+          const cells = [[sr, sc + d], [sr + d, sc]];
+          for (const [r, col] of cells) {
+            if (0 <= r && r < N && 0 <= col && col < N) {
+              hits[r][col]++;
+              assigned[r][col] = color;
+            }
+          }
+        }
+      });
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        if (hits[r][col] > 1) g[r][col] = p[4];
+        else if (hits[r][col] === 1) g[r][col] = assigned[r][col];
+      }
+
+      for (let r = 0; r < N; r++) g[r][c] = hits[r][c] ? p[4] : p[3];
+    }
+
+    function fillNestedFramesGates(g, seed) {
+      const p = palettes.nested_frames_gates;
+      const c = Math.floor(N / 2);
+      const reverse = seed % 2 === 1;
+      const gateShift = Math.floor(seed / 17) % 3 - 1;
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) g[r][col] = p[0];
+
+      for (let layer = 0; layer <= 6; layer += 2) {
+        const top = layer;
+        const left = layer;
+        const bottom = N - 1 - layer;
+        const right = N - 1 - layer;
+        const frameIndex = layer / 2;
+        const frameColor = p[1 + frameIndex % 4];
+
+        for (let col = left; col <= right; col++) {
+          g[top][col] = frameColor;
+          g[bottom][col] = frameColor;
+        }
+        for (let r = top; r <= bottom; r++) {
+          g[r][left] = frameColor;
+          g[r][right] = frameColor;
+        }
+
+        const gateLen = layer === 6 ? 1 : 2;
+        const side = reverse ? (4 - frameIndex) % 4 : frameIndex % 4;
+        const gateStart = Math.max(left + 1, Math.min(right - gateLen, c - 1 + gateShift));
+        const rowStart = Math.max(top + 1, Math.min(bottom - gateLen, c - 1 - gateShift));
+
+        for (let t = 0; t < gateLen; t++) {
+          if (side === 0) g[top][gateStart + t] = p[0];
+          else if (side === 1) g[rowStart + t][right] = p[0];
+          else if (side === 2) g[bottom][gateStart + t] = p[0];
+          else g[rowStart + t][left] = p[0];
         }
       }
 
-      if (diff < 4) return;
-
-      // Hinh 4: add a center diamond and two mirrored guide lines.
-      for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-        const diamond = Math.abs(i - 7) + Math.abs(j - 7);
-        if (diamond <= 6 && diamond % 2 === variant % 2) {
-          g[i][j] = colorStep(diamond + Math.floor((i + j) / 3), off + 7);
-        }
-        if (j === (2 * i + variant) % N || j === (14 - 2 * i - variant + 30) % N) {
-          g[i][j] = colorStep(i + j, off + 2);
-        }
+      for (let d = -1; d <= 1; d++) {
+        g[c][c + d] = p[5];
+        g[c + d][c] = p[5];
       }
+    }
+
+    function fillSquareSpiralMaze(g, seed) {
+      const p = palettes.square_spiral_maze;
+      const last = N - 1;
+      const mirror = seed % 2 === 1;
+      const put = (r, col, value) => {
+        g[r][mirror ? last - col : col] = value;
+      };
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) g[r][col] = p[0];
+
+      let top = 0;
+      let left = 0;
+      let bottom = last;
+      let right = last;
+      let layer = 0;
+
+      while (top <= bottom && left <= right) {
+        const wall = p[1 + layer % 2];
+        for (let col = left; col <= right; col++) put(top, col, wall);
+        for (let r = top; r <= bottom; r++) put(r, right, wall);
+        if (top + 2 <= bottom) {
+          for (let col = right; col >= left + 1; col--) put(bottom, col, wall);
+        }
+        if (left + 2 <= right) {
+          for (let r = bottom; r >= top + 2; r--) put(r, left + 1, wall);
+        }
+
+        top += 2;
+        left += 2;
+        bottom -= 2;
+        right -= 2;
+        layer++;
+      }
+
+      g[Math.floor(N / 2)][Math.floor(N / 2)] = p[3];
     }
 
     function gen(kind, seed, diff) {
+      if (!knownPatternKinds.has(kind)) kind = pickKind(diff, seed);
+
       const g = blank();
       const off = seed % 10;
-      const variant = Math.floor(seed / 10) % 4;
+      const c = Math.floor(N / 2);
+      const last = N - 1;
+      const edge = (r, col) => Math.min(r, col, last - r, last - col);
+      const squareLayer = (r, col) => Math.max(Math.abs(r - c), Math.abs(col - c));
+      const diamondLayer = (r, col) => Math.abs(r - c) + Math.abs(col - c);
 
-      if (kind === "bands") {
-        const horizontal = variant % 2 === 0;
-        for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-          const major = horizontal ? Math.floor(i / 2) : Math.floor(j / 2);
-          const minor = horizontal ? Math.floor(j / 5) : Math.floor(i / 5);
-          g[i][j] = colorStep(major + (diff >= 3 ? minor : 0), off);
+      if (kind === "square_target") {
+        for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+          g[r][col] = colorStep(squareLayer(r, col), off);
+          if (Math.abs(r - c) <= 1 && Math.abs(col - c) <= 1) {
+            g[r][col] = colorStep(8, off);
+          }
         }
-        if (diff >= 2) for (let k = 0; k < N; k++) setCell(g, k, 7, colorStep(k, off + 5));
-        if (diff >= 4) for (let k = 0; k < N; k++) setCell(g, 7, k, colorStep(k, off + 2));
-      } else if (kind === "diagonal") {
-        for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-          g[i][j] = colorStep(i + j, off);
+      } else if (kind === "simple_diamond") {
+        for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+          g[r][col] = colorStep(diamondLayer(r, col), off);
         }
-        if (diff >= 2) for (let i = 0; i < N; i++) setCell(g, i, i, colorStep(i * 2, off + 1));
-        if (diff >= 3) for (let i = 0; i < N; i++) setCell(g, i, 14 - i, colorStep(i * 2, off + 6));
-        if (diff >= 4) for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-          if ((i + j) % 5 === variant) g[i][j] = colorStep(Math.floor((i + j) / 5) * 2, off + 3);
+      } else if (kind === "framed_checker") {
+        for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+          const e = edge(r, col);
+          if (e < 3) {
+            g[r][col] = colorStep(e * 2, off);
+          } else {
+            const br = Math.floor((r - 3) / 3);
+            const bc = Math.floor((col - 3) / 3);
+            g[r][col] = colorStep((br + bc) % 2 ? 5 : 0, off + 3);
+          }
         }
-      } else if (kind === "rings") {
-        for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-          const d = Math.max(Math.abs(i - 7), Math.abs(j - 7));
-          g[i][j] = colorStep(d, off);
+      } else if (kind === "diamond_cross") {
+        for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+          g[r][col] = colorStep(diamondLayer(r, col), off);
+          if (r === c || col === c) {
+            g[r][col] = colorStep(Math.abs(r - c) + Math.abs(col - c), off + 5);
+          }
         }
-        if (diff >= 2) for (let k = 0; k < N; k++) g[7][k] = g[k][7] = colorStep(k, off + 4);
-        if (diff >= 4) for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-          if (Math.abs(i - 7) === Math.abs(j - 7)) g[i][j] = colorStep(Math.abs(i - 7) * 2, off + 1);
+      } else if (kind === "rings_axis") {
+        for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+          g[r][col] = colorStep(squareLayer(r, col), off);
+          if (r === c || col === c) {
+            g[r][col] = colorStep(Math.abs(r - c) + Math.abs(col - c), off + 5);
+          }
+          if ((r === c && Math.abs(col - c) <= 1) || (col === c && Math.abs(r - c) <= 1)) {
+            g[r][col] = colorStep(9, off);
+          }
         }
-      } else if (kind === "blocks") {
-        for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-          const bi = Math.floor(i / 3), bj = Math.floor(j / 3);
-          g[i][j] = colorStep(bi * 2 + bj, off);
+      } else if (kind === "mirror_frame") {
+        for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+          g[r][col] = colorStep(edge(r, col) * 2, off);
+          if (r === col || r + col === last) {
+            g[r][col] = colorStep(r * 2, off + 4);
+          }
         }
-        if (diff >= 3) for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-          if (i % 3 === 1 || j % 3 === 1) g[i][j] = colorStep(Math.floor(i / 3) + Math.floor(j / 3), off + 5);
-        }
-      } else if (kind === "checker") {
-        const size = diff <= 2 ? 3 : 2;
-        for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-          const a = Math.floor(i / size), b = Math.floor(j / size);
-          g[i][j] = colorStep((a + b) % 2 ? a + off : b + off + 4);
-        }
-        if (diff >= 2) for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-          if (i === j || i + j === 14) g[i][j] = colorStep(i, off + 2);
-        }
-      } else if (kind === "spiral") {
-        let top = 0, left = 0, bot = 14, right = 14, step = 0;
-        while (top <= bot && left <= right) {
-          for (let j = left; j <= right; j++) setCell(g, top, j, colorStep(step, off));
-          for (let i = top + 1; i <= bot; i++) setCell(g, i, right, colorStep(step + 1, off));
-          for (let j = right - 1; j >= left; j--) setCell(g, bot, j, colorStep(step + 2, off));
-          for (let i = bot - 1; i > top; i--) setCell(g, i, left, colorStep(step + 3, off));
-          top++; left++; bot--; right--; step++;
-        }
-        if (diff >= 3) for (let i = 0; i < N; i++) setCell(g, i, (i + variant * 2) % N, colorStep(i, off + 7));
-      } else {
-        for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
-          const e = Math.min(i, j, 14 - i, 14 - j);
-          g[i][j] = colorStep(e * 2, off);
-        }
-        for (let k = 0; k < N; k++) g[7][k] = g[k][7] = colorStep(k, off + 3);
-        if (diff >= 3) for (let i = 0; i < N; i++) g[i][i] = g[i][14 - i] = colorStep(i, off + 6);
+      } else if (kind === "framed_checker_easy") {
+        fillFramedCheckerEasy(g, seed);
+      } else if (kind === "simple_rings_cross") {
+        fillSimpleRingsCross(g, seed);
+      } else if (kind === "basic_diagonal_band") {
+        fillBasicDiagonalBand(g, seed);
+      } else if (kind === "diamond_cross_easy") {
+        fillDiamondCrossEasy(g, seed);
+      } else if (kind === "mirror_frame_easy") {
+        fillMirrorFrameEasy(g, seed);
+      } else if (kind === "block_checker_cross") {
+        fillBlockCheckerCross(g, seed);
+      } else if (kind === "expanding_x_bands_easy") {
+        fillExpandingXBandsEasy(g, seed);
+      } else if (kind === "diagonal_ladders_easy") {
+        fillDiagonalLaddersEasy(g, seed);
+      } else if (kind === "diamond_bfs_islands_easy") {
+        fillDiamondBfsIslandsEasy(g, seed);
+      } else if (kind === "nested_frames_gates_easy") {
+        fillNestedFramesGatesEasy(g, seed);
+      } else if (kind === "square_spiral_easy") {
+        fillSquareSpiralEasy(g, seed);
+      } else if (kind === "ripple_columns_easy") {
+        fillRippleColumnsEasy(g, seed);
+      } else if (kind === "diagonal_wave_shift") {
+        fillDiagonalWaveShift(g, seed);
+      } else if (kind === "diagonal_ladders") {
+        fillDiagonalLadders(g, seed);
+      } else if (kind === "expanding_x_bands") {
+        fillExpandingXBands(g, seed);
+      } else if (kind === "ripple_columns_from_diagonal_seeds") {
+        fillRippleColumnsFromDiagonalSeeds(g, seed);
+      } else if (kind === "zigzag_islands") {
+        fillZigzagIslands(g, seed);
+      } else if (kind === "diamond_bfs_islands") {
+        fillDiamondBfsIslands(g, seed);
+      } else if (kind === "stepped_diagonal_corridor") {
+        fillSteppedDiagonalCorridor(g, seed);
+      } else if (kind === "multi_source_cross_expansion") {
+        fillMultiSourceCrossExpansion(g, seed);
+      } else if (kind === "nested_frames_gates") {
+        fillNestedFramesGates(g, seed);
+      } else if (kind === "square_spiral_maze") {
+        fillSquareSpiralMaze(g, seed);
       }
-      addChallengeLayers(g, diff, off, variant);
       return g;
     }
 
-    function createProblem(idx, kind, seed) {
-      const point = points[idx];
-      const diff = idx + 1;
+    function createProblem(idx, kind, seed, options = {}) {
+      const point = options.point ?? points[idx];
+      const diff = options.diff ?? idx + 1;
+      const grid = gen(kind, seed, diff);
+      validateTargetGrid(grid);
       return {
-        title: `Hinh ${idx + 1}`,
+        title: `Hình ${idx + 1}`,
         point,
         kind,
         seed,
-        grid: gen(kind, seed, diff),
+        label: options.label || "",
+        practiceSpec: options.practiceSpec || null,
+        grid,
         solved: false,
         output: blank(),
         result: null,
@@ -1111,16 +1879,35 @@ void generate_shape(vector<vector<int>>& grid) {
     }
 
     function saveCurrentProblemCode() {
-      if (problems[current]) problems[current].code = $("code").value;
+      if (problems[current] && codeEditor) problems[current].code = codeEditor.getValue();
     }
 
     function makeSet() {
       const base = Math.floor(Date.now() % 1000000);
-      problems = points.map((pt, idx) => {
-        const kind = problemKinds[(base + idx * 3) % problemKinds.length];
-        const seed = base + idx * 97;
-        return createProblem(idx, kind, seed);
-      });
+      if (setMode === "contest10") {
+        problems = points.map((pt, idx) => {
+          const diff = idx + 1;
+          const seed = base + idx * 101;
+          const kind = pickContestKind(diff, seed);
+          return createProblem(idx, kind, seed, {
+            point: pt,
+            diff,
+          });
+        });
+      } else {
+        problems = points.map((pt, idx) => {
+          const deckIndex = (practiceCursor + idx) % practiceDeck.length;
+          const item = practiceDeck[deckIndex];
+          const seed = base + deckIndex * 197 + idx * 37;
+          return createProblem(idx, item.kind, seed, {
+            point: item.point,
+            diff: item.diff,
+            label: item.label,
+            practiceSpec: item,
+          });
+        });
+        practiceCursor = (practiceCursor + points.length) % practiceDeck.length;
+      }
       current = 0;
       startedAt = Date.now();
       renderProblemList();
@@ -1151,16 +1938,23 @@ void generate_shape(vector<vector<int>>& grid) {
       });
     }
 
+    function resizeViewersSoon() {
+      requestAnimationFrame(() => {
+        targetViewer?.resize();
+        outputViewer?.resize();
+      });
+    }
+
     function renderProblemList() {
       $("problem").innerHTML = problems.map((p, i) => `<option value="${i}">${p.title} - ${p.point}d</option>`).join("");
       $("problem").value = String(current);
       $("scoreList").innerHTML = problems.map((p, i) => `
         <div class="score-card ${i === current ? "active" : ""} ${p.solved ? "solved" : ""}" data-index="${i}">
-          <strong>${p.title} - ${p.point} diem</strong>
           <div class="score-meta">
-            <span>${p.kind} #${p.seed}</span>
+            <strong>${p.title} - ${p.point} điểm</strong>
             <button class="reroll" type="button" data-index="${i}" title="Doi de">&#8635;</button>
           </div>
+          ${p.label ? `<span class="practice-name">${escapeHtml(p.label)}</span>` : ""}
         </div>
       `).join("");
       $("scoreList").querySelectorAll(".score-card").forEach((card) => {
@@ -1188,9 +1982,23 @@ void generate_shape(vector<vector<int>>& grid) {
     function rerollProblem(index) {
       if (!problems[index]) return;
       if (index === current) saveCurrentProblemCode();
-      const prev = problems[index];
       const seed = (Date.now() + Math.floor(Math.random() * 1000000) + index * 9973) % 1000000;
-      problems[index] = createProblem(index, prev.kind, seed);
+      const item = problems[index].practiceSpec;
+      if (setMode === "practice" && item) {
+        problems[index] = createProblem(index, item.kind, seed, {
+          point: item.point,
+          diff: item.diff,
+          label: item.label,
+          practiceSpec: item,
+        });
+      } else {
+        const diff = index + 1;
+        const kind = pickContestKind(diff, seed);
+        problems[index] = createProblem(index, kind, seed, {
+          point: points[index],
+          diff,
+        });
+      }
       if (index === current) {
         renderCurrent();
       } else {
@@ -1198,21 +2006,28 @@ void generate_shape(vector<vector<int>>& grid) {
       }
     }
 
+    function switchSetMode(mode) {
+      saveCurrentProblemCode();
+      setMode = mode === "practice" ? "practice" : "contest10";
+      if ($("setMode")) $("setMode").value = setMode;
+      if (setMode === "practice") practiceCursor = 0;
+      makeSet();
+    }
+
     function renderCurrent() {
       ensureViewers();
       const p = problems[current];
       $("problem").value = String(current);
       lastOutput = p.output || blank();
-      $("targetInfo").textContent = `${p.kind} #${p.seed}`;
-      $("code").value = p.code || templateCpp();
-      syncEditor();
-      syncScroll();
+      $("targetInfo").textContent = `${N} x ${N}`;
+      if (codeEditor) codeEditor.setValue(p.code || templateCpp());
       targetViewer.updateGrid({ grid: p.grid });
       outputViewer.updateGrid({
         grid: lastOutput,
         incorrectCells: p.result ? diffCells(lastOutput, p.grid) : new Set(),
         expectedGrid: p.grid,
       });
+      resizeViewersSoon();
       if (p.result) {
         updateMetrics(p.result);
         $("status").textContent = p.result.ok ? "Accepted" : "Wrong Answer";
@@ -1257,7 +2072,7 @@ void generate_shape(vector<vector<int>>& grid) {
 
     async function runCode() {
       const p = problems[current];
-      p.code = $("code").value;
+      p.code = codeEditor ? codeEditor.getValue() : templateCpp();
       $("runBtn").disabled = true;
       $("status").textContent = "Compiling";
       $("message").className = "verdict";
@@ -1267,7 +2082,7 @@ void generate_shape(vector<vector<int>>& grid) {
         const res = await fetch("/api/run", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: $("code").value, target: p.grid })
+          body: JSON.stringify({ code: p.code, target: p.grid })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Run failed");
@@ -1280,6 +2095,7 @@ void generate_shape(vector<vector<int>>& grid) {
           incorrectCells: diffCells(lastOutput, p.grid),
           expectedGrid: p.grid,
         });
+        resizeViewersSoon();
         updateMetrics(data);
         $("status").textContent = data.ok ? "Accepted" : "Wrong Answer";
         $("message").className = `verdict ${data.ok ? "good" : "bad"}`;
@@ -1306,161 +2122,31 @@ void generate_shape(vector<vector<int>>& grid) {
       $("timer").textContent = `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`;
     }
 
-    function escapeHtml(s) {
-      return s.replace(/[&<>]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
-    }
-
-    function highlightCode(code) {
-      let html = escapeHtml(code);
-      html = html.replace(/(^|\n)(\s*#\s*\w+[^\n]*)/g, '$1<span class="tok-pre">$2</span>');
-      html = html.replace(/("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/g, '<span class="tok-str">$1</span>');
-      html = html.replace(/(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/g, '<span class="tok-com">$1</span>');
-      html = html.replace(/\b(vector|string|int|long|double|float|bool|char|void|const|auto)\b/g, '<span class="tok-type">$1</span>');
-      html = html.replace(/\b(for|if|else|while|return|using|namespace|include|switch|case|break|continue)\b/g, '<span class="tok-kw">$1</span>');
-      html = html.replace(/\b(-?\d+)\b/g, '<span class="tok-num">$1</span>');
-      return html + "\n";
-    }
-
-    function syncEditor() {
-      const code = $("code").value;
-      $("highlight").innerHTML = highlightCode(code);
-      const lines = Math.max(1, code.split("\n").length);
-      $("lineNums").textContent = Array.from({ length: lines }, (_, i) => i + 1).join("\n");
-    }
-
-    function syncScroll() {
-      $("highlight").scrollTop = $("code").scrollTop;
-      $("highlight").scrollLeft = $("code").scrollLeft;
-      $("lineNums").scrollTop = $("code").scrollTop;
-    }
-
-    function insertAtCursor(text) {
-      const el = $("code");
-      const start = el.selectionStart;
-      const end = el.selectionEnd;
-      el.value = el.value.slice(0, start) + text + el.value.slice(end);
-      el.selectionStart = el.selectionEnd = start + text.length;
-      syncEditor();
-      syncScroll();
-    }
-
-    function setCodeValue(value, start, end = start) {
-      const el = $("code");
-      el.value = value;
-      el.selectionStart = start;
-      el.selectionEnd = end;
-      syncEditor();
-      syncScroll();
-    }
-
-    function lineStartAt(text, pos) {
-      return text.lastIndexOf("\n", Math.max(0, pos - 1)) + 1;
-    }
-
-    function lineEndAt(text, pos) {
-      const end = text.indexOf("\n", pos);
-      return end === -1 ? text.length : end;
-    }
-
-    function selectedLineRange(text, start, end) {
-      const from = lineStartAt(text, start);
-      const adjustedEnd = end > start && text[end - 1] === "\n" ? end - 1 : end;
-      return { from, to: lineEndAt(text, adjustedEnd) };
-    }
-
-    function handleEditorKeydown(event) {
-      const el = $("code");
-      const text = el.value;
-      const start = el.selectionStart;
-      const end = el.selectionEnd;
-      const pairs = { "(": ")", "[": "]", "{": "}", "\"": "\"", "'": "'" };
-      const closers = new Set(Object.values(pairs));
-
-      if (closers.has(event.key) && start === end && text[start] === event.key) {
-        event.preventDefault();
-        setCodeValue(text, start + 1);
-        return;
-      }
-
-      if (pairs[event.key] && !event.ctrlKey && !event.altKey && !event.metaKey) {
-        event.preventDefault();
-        const close = pairs[event.key];
-        const selected = text.slice(start, end);
-        setCodeValue(text.slice(0, start) + event.key + selected + close + text.slice(end), start + 1, start + 1 + selected.length);
-        return;
-      }
-
-      if (event.key === "Enter") {
-        event.preventDefault();
-        const rowStart = lineStartAt(text, start);
-        const currentIndent = (text.slice(rowStart, start).match(/^\s*/) || [""])[0];
-        const before = text.slice(0, start);
-        const after = text.slice(end);
-        const beforeTrim = before.trimEnd();
-        const addIndent = beforeTrim.endsWith("{") ? "    " : "";
-        if (start === end && text[start - 1] === "{" && text[start] === "}") {
-          const inner = "\n" + currentIndent + "    ";
-          const outer = "\n" + currentIndent;
-          setCodeValue(before + inner + outer + after, start + inner.length);
-        } else {
-          const insert = "\n" + currentIndent + addIndent;
-          setCodeValue(before + insert + after, start + insert.length);
-        }
-        return;
-      }
-
-      if (event.key === "Tab") {
-        event.preventDefault();
-        if (!event.shiftKey && start === end) {
-          setCodeValue(text.slice(0, start) + "    " + text.slice(end), start + 4);
-          return;
-        }
-
-        const { from, to } = selectedLineRange(text, start, end);
-        const block = text.slice(from, to);
-        const lines = block.split("\n");
-        if (event.shiftKey) {
-          let removedBeforeStart = 0;
-          let removedBeforeEnd = 0;
-          let cursor = from;
-          const out = lines.map((line) => {
-            const remove = line.startsWith("    ") ? 4 : Math.min(line.match(/^ */)[0].length, 4);
-            if (cursor < start) removedBeforeStart += Math.min(remove, start - cursor);
-            if (cursor < end) removedBeforeEnd += Math.min(remove, end - cursor);
-            cursor += line.length + 1;
-            return line.slice(remove);
-          }).join("\n");
-          setCodeValue(text.slice(0, from) + out + text.slice(to), Math.max(from, start - removedBeforeStart), Math.max(from, end - removedBeforeEnd));
-        } else {
-          const out = lines.map(line => "    " + line).join("\n");
-          const lineCount = lines.length;
-          const newStart = start === from ? start : start + 4;
-          const newEnd = end + 4 * lineCount;
-          setCodeValue(text.slice(0, from) + out + text.slice(to), newStart, newEnd);
-        }
-        return;
-      }
-
-      if (event.key === "Backspace" && start === end) {
-        const emptyPairs = ["()", "[]", "{}", "\"\"", "''"];
-        if (emptyPairs.includes(text.slice(start - 1, start + 1))) {
-          event.preventDefault();
-          setCodeValue(text.slice(0, start - 1) + text.slice(start + 1), start - 1);
-          return;
-        }
-
-        const rowStart = lineStartAt(text, start);
-        const beforeCursor = text.slice(rowStart, start);
-        if (/^ +$/.test(beforeCursor) && beforeCursor.length >= 4 && beforeCursor.endsWith("    ")) {
-          event.preventDefault();
-          setCodeValue(text.slice(0, start - 4) + text.slice(start), start - 4);
-        }
-      }
-    }
-
     function initSplitter() {
       const splitter = $("splitter");
       if (!splitter) return;
+      const minLeftPane = 360;
+      const minRightPane = 430;
+      const splitterAndGaps = 20;
+
+      const clampPanePct = (pct) => {
+        const main = document.querySelector("main");
+        const width = main?.getBoundingClientRect().width || window.innerWidth || 1200;
+        const minPct = (minLeftPane / width) * 100;
+        const maxPct = ((width - minRightPane - splitterAndGaps) / width) * 100;
+        const upper = Math.max(minPct, Math.min(82, maxPct));
+        return Math.max(minPct, Math.min(upper, pct));
+      };
+
+      const setPaneWidth = (pct, persist = true) => {
+        const clamped = clampPanePct(pct);
+        const value = `${clamped.toFixed(1)}%`;
+        document.documentElement.style.setProperty("--left-pane", value);
+        if (persist) saveWidth(value);
+        if (codeEditor) codeEditor.layout();
+        resizeViewersSoon();
+        return value;
+      };
 
       const readSavedWidth = () => {
         try {
@@ -1468,8 +2154,8 @@ void generate_shape(vector<vector<int>>& grid) {
           const match = saved && saved.match(/^(\d+(?:\.\d+)?)%$/);
           if (!match) return null;
           const pct = Number(match[1]);
-          if (!Number.isFinite(pct) || pct < 25 || pct > 82) return null;
-          return `${pct}%`;
+          if (!Number.isFinite(pct)) return null;
+          return `${clampPanePct(pct).toFixed(1)}%`;
         } catch {
           return null;
         }
@@ -1480,6 +2166,7 @@ void generate_shape(vector<vector<int>>& grid) {
 
       const saved = readSavedWidth();
       if (saved) document.documentElement.style.setProperty("--left-pane", saved);
+      else setPaneWidth(41, false);
 
       splitter.addEventListener("pointerdown", (event) => {
         if (window.matchMedia("(max-width: 1050px)").matches) return;
@@ -1493,15 +2180,22 @@ void generate_shape(vector<vector<int>>& grid) {
         const main = document.querySelector("main");
         const rect = main.getBoundingClientRect();
         const pct = ((event.clientX - rect.left) / rect.width) * 100;
-        const clamped = Math.max(25, Math.min(82, pct));
-        const value = `${clamped.toFixed(1)}%`;
-        document.documentElement.style.setProperty("--left-pane", value);
-        saveWidth(value);
+        setPaneWidth(pct);
       });
 
-      const stop = () => document.body.classList.remove("resizing");
+      const stop = () => {
+        document.body.classList.remove("resizing");
+        const current = getComputedStyle(document.documentElement).getPropertyValue("--left-pane");
+        const pct = Number.parseFloat(current);
+        if (Number.isFinite(pct)) setPaneWidth(pct);
+      };
       splitter.addEventListener("pointerup", stop);
       splitter.addEventListener("pointercancel", stop);
+      window.addEventListener("resize", () => {
+        const current = getComputedStyle(document.documentElement).getPropertyValue("--left-pane");
+        const pct = Number.parseFloat(current);
+        if (Number.isFinite(pct)) setPaneWidth(pct, false);
+      });
     }
 
     function applyShotMode() {
@@ -1526,23 +2220,32 @@ void generate_shape(vector<vector<int>>& grid) {
       });
     }
 
-    $("code").value = templateCpp();
-    syncEditor();
-    $("newBtn").addEventListener("click", makeSet);
-    $("problem").addEventListener("change", () => switchProblem(Number($("problem").value || 0)));
-    $("runBtn").addEventListener("click", runCode);
-    $("loadCpp").addEventListener("click", () => { $("code").value = templateCpp(); syncEditor(); });
-    $("code").addEventListener("input", syncEditor);
-    $("code").addEventListener("scroll", syncScroll);
-    $("code").addEventListener("keydown", handleEditorKeydown);
-    $("revealBtn").addEventListener("click", () => {
-      $("log").textContent = matrixText(problems[current].grid);
-      $("message").className = "verdict";
-      $("message").textContent = "Target matrix revealed.";
+    initMonaco().then(() => {
+      $("setMode").value = setMode;
+      $("setMode").addEventListener("change", () => switchSetMode($("setMode").value));
+      window.addEventListener("resize", resizeViewersSoon);
+      $("newBtn").addEventListener("click", makeSet);
+      $("problem").addEventListener("change", () => switchProblem(Number($("problem").value || 0)));
+      $("runBtn").addEventListener("click", runCode);
+      $("loadCpp").addEventListener("click", () => {
+        const starter = templateCpp();
+        if (codeEditor) codeEditor.setValue(starter);
+        if (problems[current]) problems[current].code = starter;
+      });
+      $("revealBtn").addEventListener("click", () => {
+        $("log").textContent = matrixText(problems[current].grid);
+        $("message").className = "verdict";
+        $("message").textContent = "Target matrix revealed.";
+      });
+      setInterval(tick, 250);
+      makeSet();
+      initSplitter();
+    }).catch((error) => {
+      console.error(error);
+      $("status").textContent = "Editor Error";
+      $("message").className = "verdict bad";
+      $("message").textContent = `Monaco Editor failed to load: ${error.message}`;
     });
-    setInterval(tick, 250);
-    makeSet();
-    initSplitter();
   </script>
 </body>
 </html>
