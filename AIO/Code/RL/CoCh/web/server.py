@@ -70,7 +70,7 @@ def compile_and_run(code):
             cwd=ROOT,
             capture_output=True,
             text=True,
-            timeout=20,
+            timeout=60,
         )
         if compile_proc.returncode != 0:
             raise RuntimeError(compile_proc.stderr or compile_proc.stdout or "Compile error")
