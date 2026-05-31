@@ -149,6 +149,12 @@
       overflow: hidden;
       isolation: isolate;
     }
+    .left-panel > * {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
+    }
     .left-panel > .head {
       position: relative;
       z-index: 3;
@@ -160,19 +166,27 @@
     }
     .editor-monaco {
       width: 100%;
+      max-width: 100%;
       height: clamp(520px, 62vh, 680px);
       min-height: 0;
       background: #0b1020;
+      overflow: hidden;
     }
     .monaco-function-call { color: #7dd3fc !important; font-weight: 650; }
     .score-list {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
       padding: 10px;
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
       background: var(--panel);
+      overflow: hidden;
     }
     .score-card {
+      min-width: 0;
+      max-width: 100%;
       min-height: 54px;
       padding: 8px;
       border-radius: 6px;
@@ -182,6 +196,7 @@
       gap: 3px;
       cursor: pointer;
       transition: border-color .15s, background .15s, box-shadow .15s;
+      overflow: hidden;
     }
     .score-card:hover { border-color: #7c3aed; }
     .score-card.active {
@@ -204,10 +219,17 @@
       text-overflow: ellipsis;
     }
     .score-meta {
+      min-width: 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
+    }
+    .score-meta strong {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .score-card .reroll {
       width: 28px;
@@ -279,13 +301,13 @@
     .metric span { color: var(--muted); }
     .metric strong { display: block; font-size: 22px; margin-top: 3px; }
     @container (max-width: 700px) {
-      .result-body {
+      .right .result-body {
         grid-template-columns: 1fr;
       }
-      .viewer3d {
+      .right .viewer3d {
         grid-template-columns: minmax(0, 1fr);
       }
-      .viewer3d-legend {
+      .right .viewer3d-legend {
         grid-template-columns: repeat(5, max-content);
         padding-left: 4px;
       }
