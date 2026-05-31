@@ -18,7 +18,7 @@
       --red: #ef476f;
       --left-pane: 41%;
       --min-left-pane: 420px;
-      --min-right-pane: 420px;
+      --min-right-pane: 720px;
     }
     * { box-sizing: border-box; }
     html,
@@ -265,8 +265,10 @@
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
+      min-width: 0;
     }
     .metric {
+      min-width: 0;
       min-height: 66px;
       padding: 9px;
       border: 1px solid var(--line);
@@ -2163,8 +2165,12 @@ void generate_shape(vector<vector<int>>& grid) {
       const main = document.querySelector("main");
       const splitterWidth = 8;
       const gap = 6;
-      const minLeft = 420;
-      const minRight = 420;
+      let dragging = false;
+
+      const cssPx = (name, fallback) => {
+        const value = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
+        return Number.isFinite(value) ? value : fallback;
+      };
 
       const layoutAfterPaneResize = () => {
         requestAnimationFrame(() => {
@@ -2175,6 +2181,8 @@ void generate_shape(vector<vector<int>>& grid) {
       };
 
       const clampLeftPx = (leftPx) => {
+        const minLeft = cssPx("--min-left-pane", 420);
+        const minRight = cssPx("--min-right-pane", 720);
         const mainRect = main.getBoundingClientRect();
         const maxLeft = mainRect.width - minRight - splitterWidth - gap * 2;
         const upper = Math.max(minLeft, maxLeft);
@@ -2218,26 +2226,31 @@ void generate_shape(vector<vector<int>>& grid) {
         if (window.matchMedia("(max-width: 1050px)").matches) return;
         event.preventDefault();
         splitter.setPointerCapture(event.pointerId);
+        dragging = true;
         document.body.classList.add("resizing");
       });
 
-      splitter.addEventListener("pointermove", (event) => {
-        if (!document.body.classList.contains("resizing")) return;
+      const handlePointerMove = (event) => {
+        if (!dragging) return;
         const mainRect = main.getBoundingClientRect();
         let leftPx = event.clientX - mainRect.left;
+        const minLeft = cssPx("--min-left-pane", 420);
+        const minRight = cssPx("--min-right-pane", 720);
         const maxLeft = mainRect.width - minRight - splitterWidth - gap * 2;
         leftPx = Math.max(minLeft, Math.min(leftPx, maxLeft));
         setPaneWidth(leftPx);
-      });
+      };
 
       const stop = () => {
+        dragging = false;
         document.body.classList.remove("resizing");
         const current = getComputedStyle(document.documentElement).getPropertyValue("--left-pane");
         const leftPx = Number.parseFloat(current);
         if (Number.isFinite(leftPx)) setPaneWidth(leftPx);
       };
-      splitter.addEventListener("pointerup", stop);
-      splitter.addEventListener("pointercancel", stop);
+      document.addEventListener("pointermove", handlePointerMove);
+      document.addEventListener("pointerup", stop);
+      document.addEventListener("pointercancel", stop);
       window.addEventListener("resize", () => {
         const current = getComputedStyle(document.documentElement).getPropertyValue("--left-pane");
         const leftPx = Number.parseFloat(current);
