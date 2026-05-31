@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: voxelcode-judge
+    env: docker
+    plan: free
+    rootDir: VoxelCode
+    healthCheckPath: /
