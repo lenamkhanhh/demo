@@ -13,7 +13,17 @@ N = 15
 
 
 HARNESS = r'''
-#include <bits/stdc++.h>
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <map>
+#include <queue>
+#include <set>
+#include <stack>
+#include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
 using namespace std;
 
 {user_code}

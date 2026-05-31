@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>VoxelCode Local Judge</title>
+  <title>VoxelCode</title>
   <style>
     :root {
       --bg: #182231;
@@ -580,12 +580,15 @@
       '"': "&quot;",
       "'": "&#39;",
     }[ch]));
+    const defaultRemoteApi = "https://voxelcode-judge.onrender.com";
     const apiParam = new URLSearchParams(location.search).get("api");
     if (apiParam) {
       try { localStorage.setItem("voxelApiBase", apiParam.replace(/\/+$/, "")); } catch {}
     }
     const apiBase = (() => {
-      try { return (localStorage.getItem("voxelApiBase") || "").replace(/\/+$/, ""); } catch { return ""; }
+      const isLocal = location.hostname === "127.0.0.1" || location.hostname === "localhost";
+      if (isLocal) return "";
+      try { return (localStorage.getItem("voxelApiBase") || defaultRemoteApi).replace(/\/+$/, ""); } catch { return defaultRemoteApi; }
     })();
     const apiUrl = (path) => `${apiBase}${path}`;
 
@@ -1006,10 +1009,7 @@
     }
 
     function templateCpp() {
-      return `#include <bits/stdc++.h>
-using namespace std;
-
-const int N = 15;
+      return `const int N = 15;
 
 // Valid colors: 1..10. Values <=0 or >10 are empty.
 // Coordinates: grid[x][y], x from top to bottom, y from left to right.
