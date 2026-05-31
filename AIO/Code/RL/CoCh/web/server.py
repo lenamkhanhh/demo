@@ -13,18 +13,7 @@ N = 15
 
 
 HARNESS = r'''
-#include <algorithm>
-#include <cmath>
-#include <iostream>
-#include <map>
-#include <queue>
-#include <set>
-#include <stack>
-#include <string>
-#include <tuple>
-#include <utility>
-#include <vector>
-using namespace std;
+#include "judge_pch.hpp"
 
 {user_code}
 
@@ -76,7 +65,7 @@ def compile_and_run(code):
         exe = tmpdir / "main.exe"
         src.write_text(HARNESS.format(user_code=code), encoding="utf-8")
         compile_proc = subprocess.run(
-            ["g++", "-std=c++20", "-O0", str(src), "-o", str(exe)],
+            ["g++", "-std=c++20", "-O0", "-pipe", "-w", "-I", str(ROOT), str(src), "-o", str(exe)],
             cwd=ROOT,
             capture_output=True,
             text=True,

@@ -7,5 +7,7 @@ RUN apt-get update \
 WORKDIR /app
 COPY . .
 
+RUN g++ -std=c++20 -O0 -x c++-header judge_pch.hpp -o judge_pch.hpp.gch
+
 ENV HOST=0.0.0.0
 CMD ["python", "server.py"]
