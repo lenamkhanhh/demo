@@ -1,0 +1,2328 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VoxelCode</title>
+  <style>
+    :root {
+      --bg: #182231;
+      --panel: #111827;
+      --panel2: #202b3a;
+      --ink: #eef4ff;
+      --muted: #9aa8bb;
+      --line: #334155;
+      --cream: #efe6cd;
+      --green: #35b65a;
+      --purple: #7c3aed;
+      --red: #ef476f;
+      --left-pane: 41%;
+      --min-left-pane: 420px;
+      --min-right-pane: 420px;
+    }
+    * { box-sizing: border-box; }
+    html,
+    body {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 13px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    header {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      background: #0f172a;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; }
+    .logo {
+      width: 28px; height: 28px; border-radius: 5px;
+      display: grid; place-items: center;
+      background: var(--purple);
+      font-weight: 900;
+    }
+    .pill {
+      min-height: 24px;
+      padding: 2px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      color: var(--muted);
+      background: #172033;
+      font-weight: 650;
+    }
+    main {
+      display: grid;
+      grid-template-columns: var(--left-pane) 8px minmax(0, 1fr);
+      gap: 6px;
+      padding: 10px;
+      width: 100%;
+      max-width: 100vw;
+      margin: 0 auto;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    main > *,
+    .left-panel,
+    .right,
+    section,
+    .viewer,
+    .result-pane,
+    .viewer-body,
+    .result-body,
+    .viewer3d,
+    .viewer3d-stage {
+      min-width: 0;
+      max-width: 100%;
+    }
+    body.resizing { cursor: col-resize; user-select: none; }
+    .splitter {
+      width: 8px;
+      min-height: calc(100vh - 68px);
+      border-radius: 999px;
+      cursor: col-resize;
+      background: linear-gradient(90deg, transparent 0 2px, #334155 2px 6px, transparent 6px 8px);
+      opacity: .75;
+    }
+    .splitter:hover,
+    body.resizing .splitter {
+      background: linear-gradient(90deg, transparent 0 1px, #7c3aed 1px 7px, transparent 7px 8px);
+      opacity: 1;
+    }
+    section {
+      min-width: 0;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .head {
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      background: #121b2b;
+    }
+    h2 { margin: 0; font-size: 13px; letter-spacing: 0; }
+    .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    button, select {
+      height: 30px;
+      border-radius: 5px;
+      border: 1px solid var(--line);
+      background: #172033;
+      color: var(--ink);
+      padding: 0 9px;
+      font: inherit;
+      font-weight: 650;
+    }
+    button { cursor: pointer; }
+    button.primary { background: var(--green); border-color: var(--green); color: #07150b; }
+    button.purple { background: var(--purple); border-color: var(--purple); color: white; }
+    button:disabled { opacity: .6; cursor: wait; }
+    #setMode { max-width: 210px; }
+    label.toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-weight: 700;
+      user-select: none;
+    }
+    .left-panel {
+      display: grid;
+      grid-template-rows: auto auto auto;
+      align-content: start;
+      position: relative;
+      z-index: 2;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .left-panel > .head {
+      position: relative;
+      z-index: 3;
+      flex-wrap: nowrap;
+    }
+    .left-panel > .head .row {
+      flex: 0 0 auto;
+      flex-wrap: nowrap;
+    }
+    .editor-monaco {
+      width: 100%;
+      height: clamp(520px, 62vh, 680px);
+      min-height: 0;
+      background: #0b1020;
+    }
+    .monaco-function-call { color: #7dd3fc !important; font-weight: 650; }
+    .score-list {
+      padding: 10px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      background: var(--panel);
+    }
+    .score-card {
+      min-height: 54px;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: #263244;
+      display: grid;
+      gap: 3px;
+      cursor: pointer;
+      transition: border-color .15s, background .15s, box-shadow .15s;
+    }
+    .score-card:hover { border-color: #7c3aed; }
+    .score-card.active {
+      border-color: #a78bfa;
+      box-shadow: 0 0 0 1px rgba(167,139,250,.5);
+    }
+    .score-card.solved {
+      background: rgba(53,182,90,.18);
+      border-color: #35b65a;
+    }
+    .score-card.solved strong::after {
+      content: "  \2713 AC";
+      color: #8ff0ab;
+    }
+    .score-card strong { font-size: 13px; }
+    .score-card span { color: var(--muted); font-size: 12px; }
+    .score-card .practice-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .score-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .score-card .reroll {
+      width: 28px;
+      height: 24px;
+      padding: 0;
+      border-radius: 5px;
+      background: #172033;
+      color: #dbeafe;
+      line-height: 1;
+    }
+    .right {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+      isolation: isolate;
+      contain: layout paint;
+      container-type: inline-size;
+    }
+    .viewer,
+    .result-pane,
+    .viewer-body,
+    .result-body,
+    .viewer3d,
+    .viewer3d-stage {
+      min-width: 0;
+      max-width: 100%;
+    }
+    .viewer {
+      background: var(--cream);
+      color: #1f2937;
+      overflow: hidden;
+    }
+    .viewer .head {
+      background: #f5eedb;
+      border-color: #d8ccb2;
+      color: #1f2937;
+    }
+    .viewer-body {
+      padding: 12px;
+      overflow: hidden;
+    }
+    .result-pane {
+      background: var(--panel);
+    }
+    .result-body {
+      padding: 12px;
+      display: grid;
+      grid-template-columns: minmax(420px, 1fr) 240px;
+      gap: 12px;
+      align-items: start;
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      min-width: 0;
+    }
+    .metric {
+      min-width: 0;
+      min-height: 66px;
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel2);
+    }
+    .metric span { color: var(--muted); }
+    .metric strong { display: block; font-size: 22px; margin-top: 3px; }
+    @container (max-width: 700px) {
+      .result-body {
+        grid-template-columns: 1fr;
+      }
+      .viewer3d {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .viewer3d-legend {
+        grid-template-columns: repeat(5, max-content);
+        padding-left: 4px;
+      }
+    }
+    pre {
+      margin: 0;
+      max-height: 210px;
+      overflow: auto;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: #0b1020;
+      color: #d8f6df;
+      font: 12px/1.45 "Cascadia Mono", Consolas, monospace;
+      white-space: pre-wrap;
+    }
+    .verdict {
+      padding: 9px 10px;
+      border-radius: 6px;
+      background: #172033;
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+    .verdict.good { color: #8ff0ab; border-color: rgba(53,182,90,.5); }
+    .verdict.bad { color: #ff9bae; border-color: rgba(239,71,111,.55); }
+
+    .viewer3d {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      width: 100%;
+    }
+    .viewer3d-stage {
+      position: relative;
+      height: clamp(360px, 48vh, 560px);
+      min-height: 360px;
+      border-radius: 8px;
+      border: 1px solid rgba(50, 42, 30, .25);
+      overflow: hidden;
+      contain: layout paint size;
+      background: #eee4cb;
+    }
+    .result-pane .viewer3d-stage {
+      height: clamp(280px, 34vh, 390px);
+      min-height: 280px;
+      background: #162235;
+      border-color: var(--line);
+    }
+    .viewer3d canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+      outline: none;
+    }
+    .viewer3d-toolbar {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 3;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .viewer3d-toolbar button {
+      height: 26px;
+      padding: 0 8px;
+      border-radius: 4px;
+      background: rgba(15, 23, 42, .82);
+      color: white;
+      border-color: rgba(255,255,255,.18);
+      font-size: 12px;
+    }
+    .viewer3d-tip {
+      position: absolute;
+      z-index: 4;
+      display: none;
+      min-width: 150px;
+      transform: translate(12px, 12px);
+      pointer-events: none;
+      padding: 7px 9px;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, .94);
+      color: #f8fafc;
+      border: 1px solid rgba(255,255,255,.18);
+      font-size: 12px;
+      box-shadow: 0 10px 28px rgba(0,0,0,.25);
+    }
+    .viewer3d-info {
+      position: absolute;
+      left: 10px;
+      bottom: 10px;
+      z-index: 3;
+      min-width: 190px;
+      max-width: calc(100% - 20px);
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, .88);
+      color: #dbeafe;
+      border: 1px solid rgba(255,255,255,.16);
+      font-size: 12px;
+    }
+    .viewer3d-error {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      color: #1f2937;
+      text-align: center;
+      font-weight: 750;
+      background: rgba(239, 230, 205, .94);
+      z-index: 2;
+    }
+    .result-pane .viewer3d-error {
+      color: #dbeafe;
+      background: rgba(22, 34, 53, .94);
+    }
+    .viewer3d-legend {
+      display: grid;
+      align-content: center;
+      gap: 7px;
+      min-width: 62px;
+      color: #4f4638;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .result-pane .viewer3d-legend { color: #cbd5e1; }
+    .legend-row {
+      display: grid;
+      grid-template-columns: 18px 24px;
+      gap: 7px;
+      align-items: center;
+    }
+    .legend-swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 3px;
+      border: 1px solid rgba(0,0,0,.35);
+    }
+    @media (max-width: 1050px) {
+      main { grid-template-columns: 1fr; }
+      .splitter { display: none; }
+      .editor-monaco { height: 520px; }
+      .result-body { grid-template-columns: 1fr; }
+      .viewer3d { grid-template-columns: 1fr; }
+      .viewer3d-legend { grid-template-columns: repeat(5, max-content); padding-left: 4px; }
+      .viewer3d-stage { height: 420px; min-height: 320px; }
+      .result-pane .viewer3d-stage { height: 340px; min-height: 260px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand"><div class="logo">V</div><span>VoxelCode</span></div>
+    <div class="row">
+      <span id="timer" class="pill">10:00</span>
+      <select id="setMode" title="Che do tao de">
+        <option value="contest10">Contest 10 phút - 4 bài</option>
+        <option value="practice">Practice nâng cao</option>
+      </select>
+      <select id="problem"></select>
+      <label class="toggle"><input id="syncCamera" type="checkbox"> Sync Camera</label>
+      <button id="newBtn" type="button">New Set</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="left-panel">
+      <div class="head">
+        <h2>Code Editor</h2>
+        <div class="row">
+          <button id="loadCpp" class="purple" type="button">C++</button>
+          <button id="runBtn" class="primary" type="button">Chay code</button>
+        </div>
+      </div>
+      <div id="codeEditor" class="editor-monaco"></div>
+      <div class="score-list" id="scoreList"></div>
+    </section>
+
+    <div id="splitter" class="splitter" title="Keo de doi do rong editor"></div>
+
+    <div class="right">
+      <section class="viewer">
+        <div class="head">
+          <h2>Target Shape</h2>
+          <span id="targetInfo" class="pill">15 x 15</span>
+        </div>
+        <div class="viewer-body">
+          <div id="targetBoardMount"></div>
+        </div>
+      </section>
+
+      <section class="result-pane">
+        <div class="head">
+          <h2>Your Output</h2>
+          <span id="status" class="pill">Ready</span>
+        </div>
+        <div class="result-body">
+          <div id="outputBoardMount"></div>
+          <div class="metrics">
+            <div class="metric"><span>Verdict</span><strong id="verdictText">-</strong></div>
+            <div class="metric"><span>Score</span><strong id="scoreText">0</strong></div>
+            <div class="metric"><span>Correct</span><strong id="matchText">0/225</strong></div>
+            <div class="metric"><span>Wrong</span><strong id="wrongText">225</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="head">
+          <h2>Compiler Output</h2>
+          <button id="revealBtn" type="button">Reveal matrix</button>
+        </div>
+        <div style="padding:12px;display:grid;gap:10px">
+          <div id="message" class="verdict">Press Chay code to compile and render your grid.</div>
+          <pre id="log"></pre>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    (() => {
+      const localHost = location.hostname === "127.0.0.1" || location.hostname === "localhost";
+      if (localHost && location.port && location.port !== "8787") {
+        location.replace(`http://${location.hostname}:8787/`);
+      }
+    })();
+  </script>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three.module.js"
+      }
+    }
+  </script>
+  <script src="./vendor/monaco-editor/min/vs/loader.js"></script>
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "./vendor/OrbitControls.js";
+
+    const N = 15;
+    const colors = [
+      "#e8dfca",
+      "#e84b4b", "#f59f1f", "#f4d84c", "#53b45d", "#23a7a0",
+      "#3977d6", "#7b54d6", "#cc4fb3", "#8b5a2b", "#202733"
+    ];
+    const points = [10, 20, 30, 40];
+    const patternPools = {
+      1: ["square_target", "simple_diamond", "framed_checker"],
+      2: ["diamond_cross", "rings_axis", "mirror_frame"],
+      3: [
+        "diagonal_wave_shift",
+        "diagonal_ladders",
+        "expanding_x_bands",
+        "ripple_columns_from_diagonal_seeds",
+      ],
+      4: [
+        "zigzag_islands",
+        "diamond_bfs_islands",
+        "stepped_diagonal_corridor",
+        "multi_source_cross_expansion",
+      ],
+    };
+    const contestPools = {
+      1: ["framed_checker_easy", "simple_rings_cross", "basic_diagonal_band"],
+      2: ["diamond_cross_easy", "mirror_frame_easy", "block_checker_cross"],
+      3: ["expanding_x_bands_easy", "diagonal_ladders_easy", "diamond_bfs_islands_easy"],
+      4: ["nested_frames_gates_easy", "square_spiral_easy", "ripple_columns_easy"],
+    };
+    const palettes = {
+      framed_checker_easy: [10, 2, 4, 6],
+      simple_rings_cross: [10, 3, 6, 1],
+      basic_diagonal_band: [10, 5, 8],
+      diamond_cross_easy: [10, 2, 4, 7],
+      mirror_frame_easy: [10, 3, 6, 1],
+      block_checker_cross: [10, 2, 5, 7],
+      expanding_x_bands_easy: [10, 2, 4, 1, 6],
+      diagonal_ladders_easy: [10, 3, 6, 8],
+      diamond_bfs_islands_easy: [10, 2, 4, 6, 1],
+      nested_frames_gates_easy: [10, 2, 4, 6, 1],
+      square_spiral_easy: [10, 2, 1],
+      ripple_columns_easy: [10, 2, 5, 7],
+      diagonal_wave_shift: [10, 6, 1, 3, 5],
+      diagonal_ladders: [10, 2, 6, 8],
+      expanding_x_bands: [10, 1, 4, 7],
+      ripple_columns_from_diagonal_seeds: [10, 3, 6, 9],
+      zigzag_islands: [10, 5, 2, 7, 1],
+      diamond_bfs_islands: [10, 6, 3, 8, 1],
+      stepped_diagonal_corridor: [10, 4, 2, 6],
+      multi_source_cross_expansion: [10, 1, 5, 8, 3],
+      nested_frames_gates: [10, 2, 4, 6, 8, 1],
+      square_spiral_maze: [10, 2, 6, 1],
+    };
+    const practiceDeck = [
+      { kind: "diagonal_wave_shift", label: "1. Diagonal Wave Shift", point: 30, diff: 3 },
+      { kind: "diagonal_ladders", label: "2. Diagonal Ladders", point: 30, diff: 3 },
+      { kind: "expanding_x_bands", label: "3. Expanding X Bands", point: 30, diff: 3 },
+      { kind: "ripple_columns_from_diagonal_seeds", label: "4. Ripple Columns from Diagonal Seeds", point: 30, diff: 3 },
+      { kind: "diamond_bfs_islands", label: "5. Diamond BFS Islands", point: 40, diff: 4 },
+      { kind: "zigzag_islands", label: "6. Zigzag Islands", point: 40, diff: 4 },
+      { kind: "multi_source_cross_expansion", label: "7. Multi-source Cross Expansion", point: 40, diff: 4 },
+      { kind: "stepped_diagonal_corridor", label: "8. Stepped Diagonal Corridor", point: 40, diff: 4 },
+      { kind: "nested_frames_gates", label: "9. Nested Frames with Rotating Gates", point: 40, diff: 4 },
+      { kind: "square_spiral_maze", label: "10. Square Spiral Maze", point: 40, diff: 4 },
+    ];
+    const knownPatternKinds = new Set([
+      ...Object.values(patternPools).flat(),
+      ...Object.values(contestPools).flat(),
+      ...practiceDeck.map((item) => item.kind),
+    ]);
+    let problems = [];
+    let current = 0;
+    let setMode = "contest10";
+    let practiceCursor = 0;
+    let lastOutput = Array.from({ length: N }, () => Array(N).fill(0));
+    let startedAt = Date.now();
+    let targetViewer = null;
+    let outputViewer = null;
+    let syncing = false;
+    let codeEditor = null;
+    let functionDecorations = null;
+
+    const $ = (id) => document.getElementById(id);
+    const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (ch) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    }[ch]));
+    const defaultRemoteApi = "https://voxelcode-judge.onrender.com";
+    const apiParam = new URLSearchParams(location.search).get("api");
+    if (apiParam) {
+      try { localStorage.setItem("voxelApiBase", apiParam.replace(/\/+$/, "")); } catch {}
+    }
+    const apiBase = (() => {
+      const isLocal = location.hostname === "127.0.0.1" || location.hostname === "localhost";
+      if (isLocal) return "";
+      try { return (localStorage.getItem("voxelApiBase") || defaultRemoteApi).replace(/\/+$/, ""); } catch { return defaultRemoteApi; }
+    })();
+    const apiUrl = (path) => `${apiBase}${path}`;
+
+    class Voxel3DViewer {
+      constructor({ mountId, title, showLegend = false, onCameraChange = null }) {
+        this.mount = $(mountId);
+        this.title = title;
+        this.showLegend = showLegend;
+        this.onCameraChange = onCameraChange;
+        this.grid = blank();
+        this.expectedGrid = null;
+        this.incorrectCells = new Set();
+        this.cellMeshes = [];
+        this.hovered = null;
+        this.selected = null;
+        this.isAnimatingCamera = false;
+        this.suppressCameraChange = false;
+        this.userCameraActive = false;
+        this.renderWidth = 0;
+        this.renderHeight = 0;
+
+        this.root = document.createElement("div");
+        this.root.className = "viewer3d";
+        this.stage = document.createElement("div");
+        this.stage.className = "viewer3d-stage";
+        this.toolbar = document.createElement("div");
+        this.toolbar.className = "viewer3d-toolbar";
+        this.tooltip = document.createElement("div");
+        this.tooltip.className = "viewer3d-tip";
+        this.info = document.createElement("div");
+        this.info.className = "viewer3d-info";
+        this.info.textContent = "Click a voxel to pin row, col, value.";
+        this.stage.append(this.toolbar, this.tooltip, this.info);
+        this.root.appendChild(this.stage);
+        if (showLegend) this.root.appendChild(this.makeLegend());
+        this.mount.replaceChildren(this.root);
+
+        for (const [label, view] of [["3D", "iso"], ["Top", "top"], ["Reset", "reset"]]) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = label;
+          btn.addEventListener("click", () => {
+            if (view === "reset") this.clearSelection();
+            this.setView(view === "reset" ? "iso" : view, true);
+          });
+          this.toolbar.appendChild(btn);
+        }
+
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(this.stage.closest(".result-pane") ? 0x162235 : 0xefe6cd);
+        this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+        try {
+          this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
+        } catch (error) {
+          const box = document.createElement("div");
+          box.className = "viewer3d-error";
+          box.textContent = "Chrome dang tat/chan WebGL. Bat Hardware acceleration hoac dung Edge de xem viewer 3D.";
+          this.stage.appendChild(box);
+          throw error;
+        }
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.stage.insertBefore(this.renderer.domElement, this.toolbar);
+
+        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.08;
+        this.controls.enableRotate = true;
+        this.controls.enableZoom = true;
+        this.controls.enablePan = false;
+        this.controls.rotateSpeed = 0.35;
+        this.controls.zoomSpeed = 0.65;
+        this.controls.screenSpacePanning = true;
+        this.controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+        this.controls.mouseButtons.RIGHT = null;
+        this.controls.minDistance = 13;
+        this.controls.maxDistance = 34;
+        this.controls.minPolarAngle = THREE.MathUtils.degToRad(25);
+        this.controls.maxPolarAngle = THREE.MathUtils.degToRad(82);
+        this.controls.minAzimuthAngle = THREE.MathUtils.degToRad(0)
+        this.controls.maxAzimuthAngle = THREE.MathUtils.degToRad(90);
+        this.controls.target.set(0, 0, 0);
+        this.controls.addEventListener("start", () => {
+          this.userCameraActive = true;
+        });
+        this.controls.addEventListener("end", () => {
+          this.userCameraActive = false;
+          if (!this.isAnimatingCamera && !this.suppressCameraChange && this.onCameraChange) this.onCameraChange(this);
+        });
+        this.controls.addEventListener("change", () => {
+          if (
+            this.userCameraActive &&
+            !this.isAnimatingCamera &&
+            !this.suppressCameraChange &&
+            this.onCameraChange
+          ) this.onCameraChange(this);
+        });
+
+        const hemi = new THREE.HemisphereLight(0xffffff, 0x7b715f, 0.9);
+        this.scene.add(hemi);
+        const dir = new THREE.DirectionalLight(0xffffff, 1.35);
+        dir.position.set(8, 12, 7);
+        dir.castShadow = true;
+        dir.shadow.mapSize.set(1024, 1024);
+        this.scene.add(dir);
+        const fill = new THREE.DirectionalLight(0xffffff, 0.42);
+        fill.position.set(-7, 8, -6);
+        this.scene.add(fill);
+
+        this.boardGroup = new THREE.Group();
+        this.scene.add(this.boardGroup);
+        this.hoverOutline = this.makeOutline(0xffff66);
+        this.selectedOutline = this.makeOutline(0x00ffff);
+        this.scene.add(this.hoverOutline, this.selectedOutline);
+        this.hoverOutline.visible = false;
+        this.selectedOutline.visible = false;
+
+        this.raycaster = new THREE.Raycaster();
+        this.pointer = new THREE.Vector2();
+        this.resizeObserver = new ResizeObserver(() => this.resize());
+        this.resizeObserver.observe(this.stage);
+
+        this.renderer.domElement.addEventListener("pointermove", (event) => this.onPointerMove(event));
+        this.renderer.domElement.addEventListener("pointerleave", () => this.clearHover());
+        this.renderer.domElement.addEventListener("click", (event) => this.onClick(event));
+        this.renderer.domElement.addEventListener("contextmenu", (event) => event.preventDefault());
+
+        this.setView("iso", false);
+        this.resize();
+        this.animate();
+      }
+
+      makeLegend() {
+        const legend = document.createElement("div");
+        legend.className = "viewer3d-legend";
+        for (let v = 1; v <= 10; v++) {
+          const row = document.createElement("div");
+          row.className = "legend-row";
+          const swatch = document.createElement("div");
+          swatch.className = "legend-swatch";
+          swatch.style.background = colors[v];
+          const num = document.createElement("div");
+          num.textContent = v;
+          row.append(swatch, num);
+          legend.appendChild(row);
+        }
+        return legend;
+      }
+
+      updateGrid({ grid, incorrectCells = null, expectedGrid = null }) {
+        this.grid = grid;
+        this.expectedGrid = expectedGrid;
+        this.incorrectCells = incorrectCells || new Set();
+        this.selected = null;
+        this.info.textContent = "Click a voxel to pin row, col, value.";
+        this.rebuildModel();
+      }
+
+      rebuildModel() {
+        this.boardGroup.clear();
+        this.cellMeshes = [];
+
+        for (let row = 0; row < N; row++) {
+          for (let col = 0; col < N; col++) {
+            const raw = Number(this.grid[row]?.[col] || 0);
+            const valid = raw === 0 || (raw >= 1 && raw <= 10);
+            const value = raw >= 1 && raw <= 10 ? raw : 0;
+            const isFilled = value > 0;
+            const h = isFilled ? 0.9 : 0.055;
+            const geometry = new THREE.BoxGeometry(0.94, h, 0.94);
+            const mat = isFilled
+              ? new THREE.MeshStandardMaterial({
+                  color: new THREE.Color(colors[value]),
+                  roughness: 0.72,
+                  metalness: 0.02,
+                })
+              : new THREE.MeshBasicMaterial({
+                  color: 0xffffff,
+                  transparent: true,
+                  opacity: 0,
+                  depthWrite: false,
+                });
+            const cube = new THREE.Mesh(geometry, mat);
+            cube.position.set(col - 7, h / 2, row - 7);
+            cube.userData = {
+              row,
+              col,
+              value: valid ? raw : raw,
+              valid,
+              expected: this.expectedGrid ? this.expectedGrid[row][col] : undefined,
+              incorrect: this.incorrectCells.has(`${row},${col}`),
+              height: h,
+            };
+            cube.castShadow = isFilled;
+            cube.receiveShadow = isFilled;
+            const edgeColor = isFilled ? 0x3b3327 : 0x9f9687;
+            if (isFilled) {
+              cube.add(new THREE.LineSegments(
+                new THREE.EdgesGeometry(cube.geometry),
+                new THREE.LineBasicMaterial({ color: edgeColor, transparent: true, opacity: 0.55 })
+              ));
+            } else {
+              cube.add(new THREE.LineSegments(
+                new THREE.EdgesGeometry(cube.geometry),
+                new THREE.LineBasicMaterial({ color: edgeColor, transparent: true, opacity: 0.28 })
+              ));
+            }
+            if (cube.userData.incorrect) {
+              const redEdges = new THREE.LineSegments(
+                new THREE.EdgesGeometry(new THREE.BoxGeometry(1.02, h + 0.08, 1.02)),
+                new THREE.LineBasicMaterial({ color: 0xff2f5f })
+              );
+              redEdges.position.set(0, 0.02, 0);
+              cube.add(redEdges);
+            }
+            this.boardGroup.add(cube);
+            this.cellMeshes.push(cube);
+          }
+        }
+
+        this.addLabels();
+        this.clearHover();
+        this.clearSelection(false);
+      }
+
+      addLabels() {
+        for (let col = 0; col < N; col++) {
+          const label = this.makeTextSprite(String(col), "#26313f");
+          label.position.set(col - 7, 0.06, -8.35);
+          this.boardGroup.add(label);
+        }
+        for (let row = 0; row < N; row++) {
+          const label = this.makeTextSprite(String(row), "#26313f");
+          label.position.set(-8.45, 0.06, row - 7);
+          this.boardGroup.add(label);
+        }
+      }
+
+      makeTextSprite(text, color = "#26313f", w = 80, h = 40) {
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, w, h);
+        ctx.font = "700 24px Segoe UI, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = color;
+        ctx.fillText(text, w / 2, h / 2);
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }));
+        sprite.scale.set(w / 52, h / 52, 1);
+        return sprite;
+      }
+
+      makeOutline(color) {
+        return new THREE.LineSegments(
+          new THREE.EdgesGeometry(new THREE.BoxGeometry(1.02, 0.98, 1.02)),
+          new THREE.LineBasicMaterial({ color })
+        );
+      }
+
+      positionOutline(outline, mesh) {
+        const h = mesh.userData.height || 0.9;
+        outline.geometry.dispose();
+        outline.geometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(1.02, h + 0.08, 1.02));
+        outline.position.copy(mesh.position);
+        outline.position.y = h / 2 + 0.02;
+        outline.visible = true;
+      }
+
+      onPointerMove(event) {
+        const hit = this.pick(event);
+        if (!hit) {
+          this.clearHover();
+          return;
+        }
+        this.hovered = hit.object;
+        this.positionOutline(this.hoverOutline, hit.object);
+        this.tooltip.style.display = "block";
+        const rect = this.stage.getBoundingClientRect();
+        this.tooltip.style.left = `${event.clientX - rect.left}px`;
+        this.tooltip.style.top = `${event.clientY - rect.top}px`;
+        this.tooltip.innerHTML = this.cellText(hit.object.userData).replaceAll(" | ", "<br>");
+      }
+
+      onClick(event) {
+        const hit = this.pick(event);
+        if (!hit) return;
+        if (this.selected === hit.object) {
+          this.clearSelection();
+          return;
+        }
+        this.selected = hit.object;
+        this.positionOutline(this.selectedOutline, hit.object);
+        this.info.textContent = this.cellText(hit.object.userData);
+      }
+
+      pick(event) {
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        this.raycaster.setFromCamera(this.pointer, this.camera);
+        return this.raycaster.intersectObjects(this.cellMeshes, false)[0] || null;
+      }
+
+      cellText(data) {
+        let text = `grid[${data.row}][${data.col}] = ${data.value}`;
+        if (data.expected !== undefined && data.incorrect) {
+          text += ` | output: ${data.value} | expected: ${data.expected}`;
+        }
+        return text;
+      }
+
+      clearHover() {
+        this.hovered = null;
+        this.hoverOutline.visible = false;
+        this.tooltip.style.display = "none";
+      }
+
+      clearSelection(updateInfo = true) {
+        this.selected = null;
+        this.selectedOutline.visible = false;
+        if (updateInfo) this.info.textContent = "Click a voxel to pin row, col, value.";
+      }
+
+      applyViewLimits(view) {
+        if (view === "top") {
+          this.controls.minPolarAngle = 0;
+          this.controls.maxPolarAngle = 0.001;
+          this.controls.minAzimuthAngle = -Infinity;
+          this.controls.maxAzimuthAngle = Infinity;
+        } else {
+          this.controls.minPolarAngle = THREE.MathUtils.degToRad(25);
+          this.controls.maxPolarAngle = THREE.MathUtils.degToRad(82);
+          this.controls.minAzimuthAngle = THREE.MathUtils.degToRad(0);
+          this.controls.maxAzimuthAngle = THREE.MathUtils.degToRad(90);
+        }
+      }
+
+      setView(view, animated = true) {
+        let position;
+        let up = new THREE.Vector3(0, 1, 0);
+        if (view === "top") {
+          position = new THREE.Vector3(0, 28, 0.001);
+          up = new THREE.Vector3(0, 0, -1);
+        } else {
+          position = new THREE.Vector3(13.5, 14, 13.5);
+        }
+        const target = new THREE.Vector3(0, 0, 0);
+        if (!animated) {
+          this.camera.position.copy(position);
+          this.camera.up.copy(up);
+          this.controls.target.copy(target);
+          this.camera.lookAt(target);
+          this.applyViewLimits(view);
+          this.controls.update();
+          this.camera.updateProjectionMatrix();
+          return;
+        }
+        const startPos = this.camera.position.clone();
+        const startUp = this.camera.up.clone();
+        const startTarget = this.controls.target.clone();
+        const start = performance.now();
+        const duration = 420;
+        this.isAnimatingCamera = true;
+        const step = (now) => {
+          const t = Math.min(1, (now - start) / duration);
+          const e = 1 - Math.pow(1 - t, 3);
+          this.camera.position.lerpVectors(startPos, position, e);
+          this.camera.up.lerpVectors(startUp, up, e).normalize();
+          this.controls.target.lerpVectors(startTarget, target, e);
+          this.camera.lookAt(this.controls.target);
+          this.applyViewLimits(view);
+          this.controls.update();
+          if (t < 1) requestAnimationFrame(step);
+          else {
+            this.isAnimatingCamera = false;
+            if (this.onCameraChange) this.onCameraChange(this);
+          }
+        };
+        requestAnimationFrame(step);
+      }
+
+      syncFrom(other) {
+        this.suppressCameraChange = true;
+        try {
+          this.camera.position.copy(other.camera.position);
+          this.camera.up.copy(other.camera.up);
+          this.camera.zoom = other.camera.zoom;
+          this.controls.target.copy(other.controls.target);
+          this.camera.updateProjectionMatrix();
+          this.controls.update();
+        } finally {
+          this.suppressCameraChange = false;
+        }
+      }
+
+      resize() {
+        const w = Math.max(240, Math.floor(this.stage.clientWidth));
+        const h = Math.max(220, Math.floor(this.stage.clientHeight));
+        if (!w || !h) return;
+        this.renderWidth = w;
+        this.renderHeight = h;
+        this.renderer.setSize(w, h, false);
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+      }
+
+      animate() {
+        requestAnimationFrame(() => this.animate());
+        this.controls.update();
+        this.renderer.render(this.scene, this.camera);
+      }
+    }
+
+    function templateCpp() {
+      return `const int N = 15;
+
+// Valid colors: 1..10. Values <=0 or >10 are empty.
+// Coordinates: grid[x][y], x from top to bottom, y from left to right.
+void generate_shape(vector<vector<int>>& grid) {
+    // TODO: code the pattern to match the target shape
+    // Example:
+    // for (int x = 0; x < N; ++x)
+    //     for (int y = 0; y < N; ++y)
+    //         if (x == y) grid[x][y] = 6;
+}`;
+    }
+
+    function registerCppCompletions(monacoApi) {
+      const keywordSuggestions = [
+        ["max", monacoApi.languages.CompletionItemKind.Function],
+        ["min", monacoApi.languages.CompletionItemKind.Function],
+        ["abs", monacoApi.languages.CompletionItemKind.Function],
+        ["sort", monacoApi.languages.CompletionItemKind.Function],
+        ["reverse", monacoApi.languages.CompletionItemKind.Function],
+        ["swap", monacoApi.languages.CompletionItemKind.Function],
+        ["fill", monacoApi.languages.CompletionItemKind.Function],
+        ["vector", monacoApi.languages.CompletionItemKind.Class],
+        ["string", monacoApi.languages.CompletionItemKind.Class],
+        ["pair", monacoApi.languages.CompletionItemKind.Class],
+        ["map", monacoApi.languages.CompletionItemKind.Class],
+        ["set", monacoApi.languages.CompletionItemKind.Class],
+        ["queue", monacoApi.languages.CompletionItemKind.Class],
+        ["stack", monacoApi.languages.CompletionItemKind.Class],
+        ["push_back", monacoApi.languages.CompletionItemKind.Method],
+        ["size", monacoApi.languages.CompletionItemKind.Method],
+        ["begin", monacoApi.languages.CompletionItemKind.Method],
+        ["end", monacoApi.languages.CompletionItemKind.Method],
+        ["cout", monacoApi.languages.CompletionItemKind.Variable],
+        ["cin", monacoApi.languages.CompletionItemKind.Variable],
+      ];
+
+      const snippetRules = monacoApi.languages.CompletionItemInsertTextRule.InsertAsSnippet;
+      monacoApi.languages.registerCompletionItemProvider("cpp", {
+        triggerCharacters: [".", ">", ":", "("],
+        provideCompletionItems(model, position) {
+          const word = model.getWordUntilPosition(position);
+          const range = {
+            startLineNumber: position.lineNumber,
+            endLineNumber: position.lineNumber,
+            startColumn: word.startColumn,
+            endColumn: word.endColumn,
+          };
+          const suggestions = keywordSuggestions.map(([label, kind]) => ({
+            label,
+            kind,
+            insertText: label,
+            range,
+          }));
+          suggestions.push(
+            {
+              label: "for",
+              kind: monacoApi.languages.CompletionItemKind.Snippet,
+              insertText: "for (int ${1:i} = 0; ${1:i} < N; ++${1:i}) {\n    $0\n}",
+              insertTextRules: snippetRules,
+              documentation: "Loop from 0 to N - 1",
+              range,
+            },
+            {
+              label: "for2d",
+              kind: monacoApi.languages.CompletionItemKind.Snippet,
+              insertText: "for (int ${1:i} = 0; ${1:i} < N; ++${1:i}) {\n    for (int ${2:j} = 0; ${2:j} < N; ++${2:j}) {\n        $0\n    }\n}",
+              insertTextRules: snippetRules,
+              documentation: "Nested loop over the 15 x 15 grid",
+              range,
+            },
+            {
+              label: "grid",
+              kind: monacoApi.languages.CompletionItemKind.Snippet,
+              insertText: "grid[${1:i}][${2:j}] = $0;",
+              insertTextRules: snippetRules,
+              documentation: "Assign one target cell",
+              range,
+            }
+          );
+          return { suggestions };
+        },
+      });
+    }
+
+    function updateFunctionDecorations(monacoApi) {
+      if (!codeEditor || !functionDecorations) return;
+      const model = codeEditor.getModel();
+      if (!model) return;
+
+      const names = /\b(max|min|abs|sort|fill)\b(?=\s*\()/g;
+      const lines = model.getLinesContent();
+      const tokenized = monacoApi.editor.tokenize(model.getValue(), "cpp");
+      const decorations = [];
+
+      const tokenTypeAt = (lineIndex, offset) => {
+        const tokens = tokenized[lineIndex] || [];
+        let found = "";
+        for (let i = 0; i < tokens.length; i++) {
+          const start = tokens[i].offset ?? tokens[i].startIndex ?? 0;
+          const next = tokens[i + 1] ? (tokens[i + 1].offset ?? tokens[i + 1].startIndex ?? lines[lineIndex].length) : lines[lineIndex].length;
+          if (offset >= start && offset < next) {
+            found = tokens[i].type || "";
+            break;
+          }
+        }
+        return found;
+      };
+
+      for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+        names.lastIndex = 0;
+        let match;
+        while ((match = names.exec(lines[lineIndex]))) {
+          const tokenType = tokenTypeAt(lineIndex, match.index);
+          if (tokenType.includes("comment") || tokenType.includes("string")) continue;
+          decorations.push({
+            range: new monacoApi.Range(lineIndex + 1, match.index + 1, lineIndex + 1, match.index + match[0].length + 1),
+            options: { inlineClassName: "monaco-function-call" },
+          });
+        }
+      }
+      functionDecorations.set(decorations);
+    }
+
+    function initMonaco() {
+      return new Promise((resolve, reject) => {
+        if (!window.require) {
+          reject(new Error("Monaco loader is missing"));
+          return;
+        }
+
+        window.require.config({ paths: { vs: "./vendor/monaco-editor/min/vs" } });
+        window.require(["vs/editor/editor.main"], () => {
+          const monacoApi = window.monaco;
+          monacoApi.editor.defineTheme("voxel-dark", {
+            base: "vs-dark",
+            inherit: true,
+            rules: [
+              { token: "keyword", foreground: "a78bfa", fontStyle: "bold" },
+              { token: "type", foreground: "67e8f9" },
+              { token: "number", foreground: "fbbf24" },
+              { token: "string", foreground: "86efac" },
+              { token: "comment", foreground: "64748b", fontStyle: "italic" },
+              { token: "predefined", foreground: "fb7185" },
+            ],
+            colors: {
+              "editor.background": "#0b1020",
+              "editor.foreground": "#d8f6df",
+              "editorLineNumber.foreground": "#60708a",
+              "editorLineNumber.activeForeground": "#dbeafe",
+              "editorCursor.foreground": "#ffffff",
+              "editor.lineHighlightBackground": "#111827",
+              "editor.selectionBackground": "#7c3aed60",
+              "editorIndentGuide.background1": "#233044",
+              "editorIndentGuide.activeBackground1": "#7c3aed",
+            },
+          });
+          registerCppCompletions(monacoApi);
+          codeEditor = monacoApi.editor.create($("codeEditor"), {
+            value: templateCpp(),
+            language: "cpp",
+            theme: "voxel-dark",
+            automaticLayout: true,
+            fontFamily: "Cascadia Mono, Consolas, monospace",
+            fontSize: 13,
+            lineHeight: 20,
+            minimap: { enabled: false },
+            wordWrap: "off",
+            scrollBeyondLastLine: true,
+            tabSize: 4,
+            insertSpaces: true,
+            autoClosingBrackets: "always",
+            autoClosingQuotes: "always",
+            autoIndent: "full",
+            formatOnType: true,
+            bracketPairColorization: { enabled: true },
+            guides: {
+              bracketPairs: true,
+              indentation: true,
+            },
+            suggestOnTriggerCharacters: true,
+            quickSuggestions: true,
+            folding: true,
+            renderLineHighlight: "all",
+            smoothScrolling: true,
+            mouseWheelZoom: true,
+          });
+          functionDecorations = codeEditor.createDecorationsCollection();
+          codeEditor.onDidChangeModelContent(() => updateFunctionDecorations(monacoApi));
+          updateFunctionDecorations(monacoApi);
+          resolve();
+        }, reject);
+      });
+    }
+
+    function blank() {
+      return Array.from({ length: N }, () => Array(N).fill(0));
+    }
+
+    function setCell(g, i, j, v) {
+      if (0 <= i && i < N && 0 <= j && j < N) g[i][j] = v;
+    }
+
+    function colorStep(x, offset = 0) {
+      return ((x + offset) % 10 + 10) % 10 + 1;
+    }
+
+    function poolForDiff(diff) {
+      return patternPools[diff] || patternPools[1];
+    }
+
+    function contestPoolForDiff(diff) {
+      return contestPools[diff] || contestPools[1];
+    }
+
+    function pickFromPool(pool, seed) {
+      return pool[Math.floor(seed / 13) % pool.length];
+    }
+
+    function pickKind(diff, seed) {
+      return pickFromPool(poolForDiff(diff), seed);
+    }
+
+    function pickContestKind(diff, seed) {
+      return pickFromPool(contestPoolForDiff(diff), seed);
+    }
+
+    function validateTargetGrid(grid) {
+      if (!Array.isArray(grid) || grid.length !== N) {
+        throw new Error("Invalid target grid size");
+      }
+      for (let r = 0; r < N; r++) {
+        if (!Array.isArray(grid[r]) || grid[r].length !== N) {
+          throw new Error(`Invalid target row ${r}`);
+        }
+        for (let c = 0; c < N; c++) {
+          if (!Number.isInteger(grid[r][c]) || grid[r][c] < 1 || grid[r][c] > 10) {
+            throw new Error(`Invalid target at [${r}][${c}] = ${grid[r][c]}`);
+          }
+        }
+      }
+    }
+
+    function fillFramedCheckerEasy(g, seed) {
+      const p = palettes.framed_checker_easy;
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        const edge = Math.min(r, col, N - 1 - r, N - 1 - col);
+        if (edge === 0) g[r][col] = p[1];
+        else if (edge === 1) g[r][col] = p[2];
+        else {
+          const br = Math.floor((r - 2) / 3);
+          const bc = Math.floor((col - 2) / 3);
+          g[r][col] = (br + bc) % 2 === 0 ? p[0] : p[3];
+        }
+      }
+    }
+
+    function fillSimpleRingsCross(g, seed) {
+      const p = palettes.simple_rings_cross;
+      const c = Math.floor(N / 2);
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        const layer = Math.max(Math.abs(r - c), Math.abs(col - c));
+        g[r][col] = layer % 2 === 0 ? p[1] : p[0];
+        if (r === c || col === c) g[r][col] = p[2];
+        if (Math.abs(r - c) <= 1 && Math.abs(col - c) <= 1) g[r][col] = p[3];
+      }
+    }
+
+    function fillBasicDiagonalBand(g, seed) {
+      const p = palettes.basic_diagonal_band;
+      const last = N - 1;
+      const anti = seed % 2 === 1;
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        const dist = anti ? Math.abs(r + col - last) : Math.abs(r - col);
+        g[r][col] = dist <= 1 ? p[1] : p[0];
+        if (dist === 0) g[r][col] = p[2];
+      }
+    }
+
+    function fillDiamondCrossEasy(g, seed) {
+      const p = palettes.diamond_cross_easy;
+      const c = Math.floor(N / 2);
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        const diamond = Math.abs(r - c) + Math.abs(col - c);
+        g[r][col] = Math.floor(diamond / 2) % 2 === 0 ? p[1] : p[0];
+        if (r === c || col === c) g[r][col] = p[2];
+        if (Math.abs(r - c) <= 1 && Math.abs(col - c) <= 1) g[r][col] = p[3];
+      }
+    }
+
+    function fillMirrorFrameEasy(g, seed) {
+      const p = palettes.mirror_frame_easy;
+      const last = N - 1;
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        const edge = Math.min(r, col, last - r, last - col);
+        g[r][col] = edge % 2 === 0 ? p[1] : p[0];
+        if (r === col || r + col === last) g[r][col] = p[2];
+        if (edge === 0 && (r === 0 || col === 0)) g[r][col] = p[3];
+      }
+    }
+
+    function fillBlockCheckerCross(g, seed) {
+      const p = palettes.block_checker_cross;
+      const c = Math.floor(N / 2);
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        const br = Math.floor(r / 3);
+        const bc = Math.floor(col / 3);
+        g[r][col] = (br + bc) % 2 === 0 ? p[0] : p[1];
+        if (r === c || col === c) g[r][col] = p[2];
+      }
+      for (let r = c - 1; r <= c + 1; r++) for (let col = c - 1; col <= c + 1; col++) g[r][col] = p[3];
+    }
+
+    function fillExpandingXBandsEasy(g, seed) {
+      const p = palettes.expanding_x_bands_easy;
+      const c = Math.floor(N / 2);
+      const last = N - 1;
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        const width = Math.abs(r - c) <= 3 ? 2 : 1;
+        const onMain = Math.abs(r - col) <= width;
+        const onAnti = Math.abs(r + col - last) <= width;
+        g[r][col] = p[0];
+        if (onMain) g[r][col] = p[1];
+        if (onAnti) g[r][col] = p[2];
+        if (onMain && onAnti) g[r][col] = p[3];
+        if (r === c || col === c) g[r][col] = p[4];
+      }
+    }
+
+    function fillDiagonalLaddersEasy(g, seed) {
+      const p = palettes.diagonal_ladders_easy;
+      const last = N - 1;
+      const mirror = seed % 2 === 1;
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) g[r][col] = p[0];
+
+      for (let r = 1; r < N - 1; r++) {
+        const a = mirror ? last - r : r;
+        const b = mirror ? r : last - r;
+        g[r][a] = p[1];
+        g[r][b] = p[1];
+        if (r % 3 === 1) {
+          for (let d = 0; d <= 2; d++) {
+            setCell(g, r, a + d, p[2]);
+            setCell(g, r, b - d, p[2]);
+          }
+        }
+      }
+      for (let col = 0; col < N; col++) g[Math.floor(N / 2)][col] = p[3];
+    }
+
+    function fillDiamondBfsIslandsEasy(g, seed) {
+      const p = palettes.diamond_bfs_islands_easy;
+      const seeds = [[4, 4], [4, 10], [10, 4], [10, 10]];
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        let best = 99;
+        let count = 0;
+        for (const [sr, sc] of seeds) {
+          const dist = Math.abs(r - sr) + Math.abs(col - sc);
+          if (dist <= 4) {
+            count++;
+            best = Math.min(best, dist);
+          }
+        }
+        g[r][col] = p[0];
+        if (count >= 2) g[r][col] = p[4];
+        else if (best <= 1) g[r][col] = p[1];
+        else if (best === 2) g[r][col] = p[2];
+        else if (best <= 4) g[r][col] = p[3];
+      }
+    }
+
+    function fillNestedFramesGatesEasy(g, seed) {
+      const p = palettes.nested_frames_gates_easy;
+      const c = Math.floor(N / 2);
+      const reverse = seed % 2 === 1;
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) g[r][col] = p[0];
+
+      [0, 2, 4, 6].forEach((layer, idx) => {
+        const top = layer;
+        const left = layer;
+        const bottom = N - 1 - layer;
+        const right = N - 1 - layer;
+        const color = p[1 + idx % 3];
+        for (let col = left; col <= right; col++) {
+          g[top][col] = color;
+          g[bottom][col] = color;
+        }
+        for (let r = top; r <= bottom; r++) {
+          g[r][left] = color;
+          g[r][right] = color;
+        }
+
+        const side = reverse ? (4 - idx) % 4 : idx % 4;
+        for (let t = 0; t < 2; t++) {
+          if (side === 0) setCell(g, top, c + t - 1, p[0]);
+          else if (side === 1) setCell(g, c + t - 1, right, p[0]);
+          else if (side === 2) setCell(g, bottom, c + t - 1, p[0]);
+          else setCell(g, c + t - 1, left, p[0]);
+        }
+      });
+
+      g[c][c] = p[4];
+    }
+
+    function fillSquareSpiralEasy(g, seed) {
+      const p = palettes.square_spiral_easy;
+      const last = N - 1;
+      const mirror = seed % 2 === 1;
+      const put = (r, col, value) => setCell(g, r, mirror ? last - col : col, value);
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) g[r][col] = p[0];
+
+      let top = 0;
+      let left = 0;
+      let bottom = last;
+      let right = last;
+      while (top <= bottom && left <= right) {
+        for (let col = left; col <= right; col++) put(top, col, p[1]);
+        for (let r = top; r <= bottom; r++) put(r, right, p[1]);
+        if (top + 2 <= bottom) {
+          for (let col = right; col >= left + 1; col--) put(bottom, col, p[1]);
+        }
+        if (left + 2 <= right) {
+          for (let r = bottom; r >= top + 2; r--) put(r, left + 1, p[1]);
+        }
+        top += 2;
+        left += 2;
+        bottom -= 2;
+        right -= 2;
+      }
+
+      g[Math.floor(N / 2)][Math.floor(N / 2)] = p[2];
+    }
+
+    function fillRippleColumnsEasy(g, seed) {
+      const p = palettes.ripple_columns_easy;
+      const c = Math.floor(N / 2);
+      const last = N - 1;
+      const anti = seed % 2 === 1;
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) g[r][col] = p[0];
+
+      for (let k = 1; k < N - 1; k += 2) {
+        const row = k;
+        const col = anti ? last - k : k;
+        const len = 1 + Math.floor(Math.min(k, last - k) / 3);
+        const dir = col < c ? 1 : -1;
+        g[row][col] = p[1];
+        for (let t = 1; t <= len; t++) setCell(g, row + dir * t, col, p[2]);
+      }
+
+      for (let r = 0; r < N; r++) g[r][c] = p[3];
+    }
+
+    function fillDiagonalWaveShift(g, seed) {
+      const p = palettes.diagonal_wave_shift;
+      const c = Math.floor(N / 2);
+      const diagonals = seed % 2 ? [-5, -1, 3] : [-6, -2, 2, 6];
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        g[r][col] = Math.floor((r + col) / 3) % 2 ? p[0] : p[1];
+      }
+
+      diagonals.forEach((diag, idx) => {
+        for (let r = 0; r < N; r++) {
+          const col = r - diag;
+          if (col < 0 || col >= N) continue;
+          const wing = 1 + Math.floor(Math.abs(r - c) / 3) + (idx % 2);
+          for (let d = -wing; d <= wing; d++) setCell(g, r, col + d, p[3]);
+          setCell(g, r, col, p[2]);
+        }
+      });
+
+      const side = seed % 2 ? c - 1 : c + 1;
+      for (let r = 0; r < N; r++) {
+        g[r][c] = p[4];
+        g[r][side] = r % 2 ? p[2] : p[3];
+      }
+    }
+
+    function fillDiagonalLadders(g, seed) {
+      const p = palettes.diagonal_ladders;
+      const c = Math.floor(N / 2);
+      const last = N - 1;
+      const slope = seed % 2 ? -1 : 1;
+      const offsets = [-5, 0, 5];
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) g[r][col] = p[0];
+
+      const drawLadder = (offset, idx) => {
+        for (let r = 0; r < N; r++) {
+          const col = slope === 1 ? r + offset : last - r + offset;
+          if (col < 0 || col >= N) continue;
+          setCell(g, r, col, p[1 + idx % 2]);
+          if ((r + idx) % 2 === 0) {
+            const len = 2 + ((r + idx) % 3 === 0 ? 1 : 0);
+            const dir = col < c ? 1 : -1;
+            for (let d = 1; d <= len; d++) setCell(g, r, col + dir * d, p[2]);
+          }
+        }
+      };
+
+      offsets.forEach(drawLadder);
+      for (let col = 0; col < N; col++) g[c][col] = col % 2 ? p[3] : p[2];
+      for (let r = 0; r < N; r++) g[r][c] = r % 2 ? p[3] : p[1];
+    }
+
+    function fillExpandingXBands(g, seed) {
+      const p = palettes.expanding_x_bands;
+      const c = Math.floor(N / 2);
+      const last = N - 1;
+      const widerAtEdge = seed % 2 === 0;
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        const d1 = Math.abs(r - col);
+        const d2 = Math.abs(r + col - last);
+        const edgeLayer = Math.max(Math.abs(r - c), Math.abs(col - c));
+        const thick = 1 + (edgeLayer >= 5 ? 1 : 0) + (widerAtEdge && edgeLayer >= 7 ? 1 : 0);
+        const inMain = d1 <= thick;
+        const inAnti = d2 <= thick;
+        g[r][col] = p[0];
+        if (inMain) g[r][col] = p[1];
+        if (inAnti) g[r][col] = p[2];
+        if (inMain && inAnti) g[r][col] = p[3];
+      }
+
+      for (let k = 0; k < N; k++) {
+        if (g[c][k] !== p[3]) g[c][k] = p[2];
+        if (g[k][c] !== p[3]) g[k][c] = p[1];
+      }
+      for (let r = c - 1; r <= c + 1; r++) for (let col = c - 1; col <= c + 1; col++) g[r][col] = p[3];
+    }
+
+    function fillRippleColumnsFromDiagonalSeeds(g, seed) {
+      const p = palettes.ripple_columns_from_diagonal_seeds;
+      const c = Math.floor(N / 2);
+      const last = N - 1;
+      const useAnti = seed % 2 === 1;
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        g[r][col] = Math.floor((r + col) / 4) % 2 ? p[0] : p[1];
+      }
+
+      for (let r = 1; r < last; r += 2) {
+        const col = useAnti ? last - r : r;
+        const len = 2 + Math.floor(Math.abs(r - c) / 2);
+        const dir = col <= c ? 1 : -1;
+        for (let d = 0; d <= len; d++) setCell(g, r + d * dir, col, p[3]);
+        setCell(g, r, col, p[2]);
+      }
+
+      for (let col = 0; col < N; col++) g[c][col] = col % 2 ? p[2] : p[3];
+    }
+
+    function fillZigzagIslands(g, seed) {
+      const p = palettes.zigzag_islands;
+      const c = Math.floor(N / 2);
+      const flip = seed % 2 === 1;
+      const seeds = flip
+        ? [[2, 12, -1, 5], [5, 9, 1, 4], [9, 6, -1, 5], [12, 2, 1, 4]]
+        : [[2, 2, 1, 5], [5, 5, -1, 4], [9, 8, 1, 5], [12, 12, -1, 4]];
+      const hits = blank();
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) g[r][col] = p[0];
+
+      seeds.forEach(([sr, sc, dir, radius], idx) => {
+        for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+          const dr = r - sr;
+          const dc = col - sc;
+          const dist = Math.abs(dr) + Math.abs(dc);
+          const zig = Math.abs(dr - dir * dc);
+          if (dist <= radius && zig <= 2 + Math.floor(dist / 4)) {
+            hits[r][col]++;
+            g[r][col] = hits[r][col] > 1 ? p[4] : p[1 + (idx + Math.floor(dist / 2)) % 3];
+          }
+        }
+      });
+
+      for (let k = 0; k < N; k++) {
+        g[c][k] = hits[c][k] ? p[4] : p[3];
+        g[k][c] = hits[k][c] ? p[4] : p[2];
+      }
+    }
+
+    function fillDiamondBfsIslands(g, seed) {
+      const p = palettes.diamond_bfs_islands;
+      const c = Math.floor(N / 2);
+      const shift = Math.floor(seed / 17) % 3 - 1;
+      const seeds = [
+        [3 + shift, 3, 5],
+        [3, 11 - shift, 5],
+        [11, 3 + shift, 5],
+        [10 - shift, 10, 6],
+      ];
+      const counts = blank();
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        let best = 99;
+        let count = 0;
+        for (const [sr, sc, radius] of seeds) {
+          const dist = Math.abs(r - sr) + Math.abs(col - sc);
+          if (dist <= radius) {
+            best = Math.min(best, dist);
+            count++;
+          }
+        }
+        counts[r][col] = count;
+        g[r][col] = count === 0 ? p[0] : count > 1 ? p[4] : p[1 + Math.floor(best / 2) % 3];
+      }
+
+      for (let k = 0; k < N; k++) {
+        g[c][k] = counts[c][k] ? p[4] : p[3];
+        g[k][c] = counts[k][c] ? p[4] : p[2];
+      }
+    }
+
+    function fillSteppedDiagonalCorridor(g, seed) {
+      const p = palettes.stepped_diagonal_corridor;
+      const c = Math.floor(N / 2);
+      const last = N - 1;
+      const flip = seed % 2 === 1;
+      const segmentShift = [0, 1, 1, 0, -1];
+
+      for (let col = 0; col < N; col++) {
+        const base = flip ? last - col : col;
+        const centerRow = Math.max(0, Math.min(last, base + segmentShift[Math.floor(col / 3)]));
+        for (let r = 0; r < N; r++) {
+          const dist = Math.abs(r - centerRow);
+          g[r][col] = r < centerRow ? p[0] : p[1];
+          if (dist <= 1) g[r][col] = p[2];
+          else if (dist === 2) g[r][col] = p[3];
+          if (col === c && dist > 2) g[r][col] = p[3];
+        }
+      }
+    }
+
+    function fillMultiSourceCrossExpansion(g, seed) {
+      const p = palettes.multi_source_cross_expansion;
+      const c = Math.floor(N / 2);
+      const last = N - 1;
+      const flip = seed % 2 === 1;
+      const baseRows = [2, 5, 7, 10, 12];
+      const lengths = [3, 4, 5, 4, 3];
+      const hits = blank();
+      const assigned = blank();
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) g[r][col] = p[0];
+      for (let r = 0; r < N; r++) setCell(g, r, flip ? last - r : r, p[1]);
+
+      baseRows.forEach((sr, idx) => {
+        const sc = flip ? last - sr : sr;
+        const len = lengths[idx];
+        const color = p[1 + idx % 3];
+        for (let d = -len; d <= len; d++) {
+          const cells = [[sr, sc + d], [sr + d, sc]];
+          for (const [r, col] of cells) {
+            if (0 <= r && r < N && 0 <= col && col < N) {
+              hits[r][col]++;
+              assigned[r][col] = color;
+            }
+          }
+        }
+      });
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+        if (hits[r][col] > 1) g[r][col] = p[4];
+        else if (hits[r][col] === 1) g[r][col] = assigned[r][col];
+      }
+
+      for (let r = 0; r < N; r++) g[r][c] = hits[r][c] ? p[4] : p[3];
+    }
+
+    function fillNestedFramesGates(g, seed) {
+      const p = palettes.nested_frames_gates;
+      const c = Math.floor(N / 2);
+      const reverse = seed % 2 === 1;
+      const gateShift = Math.floor(seed / 17) % 3 - 1;
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) g[r][col] = p[0];
+
+      for (let layer = 0; layer <= 6; layer += 2) {
+        const top = layer;
+        const left = layer;
+        const bottom = N - 1 - layer;
+        const right = N - 1 - layer;
+        const frameIndex = layer / 2;
+        const frameColor = p[1 + frameIndex % 4];
+
+        for (let col = left; col <= right; col++) {
+          g[top][col] = frameColor;
+          g[bottom][col] = frameColor;
+        }
+        for (let r = top; r <= bottom; r++) {
+          g[r][left] = frameColor;
+          g[r][right] = frameColor;
+        }
+
+        const gateLen = layer === 6 ? 1 : 2;
+        const side = reverse ? (4 - frameIndex) % 4 : frameIndex % 4;
+        const gateStart = Math.max(left + 1, Math.min(right - gateLen, c - 1 + gateShift));
+        const rowStart = Math.max(top + 1, Math.min(bottom - gateLen, c - 1 - gateShift));
+
+        for (let t = 0; t < gateLen; t++) {
+          if (side === 0) g[top][gateStart + t] = p[0];
+          else if (side === 1) g[rowStart + t][right] = p[0];
+          else if (side === 2) g[bottom][gateStart + t] = p[0];
+          else g[rowStart + t][left] = p[0];
+        }
+      }
+
+      for (let d = -1; d <= 1; d++) {
+        g[c][c + d] = p[5];
+        g[c + d][c] = p[5];
+      }
+    }
+
+    function fillSquareSpiralMaze(g, seed) {
+      const p = palettes.square_spiral_maze;
+      const last = N - 1;
+      const mirror = seed % 2 === 1;
+      const put = (r, col, value) => {
+        g[r][mirror ? last - col : col] = value;
+      };
+
+      for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) g[r][col] = p[0];
+
+      let top = 0;
+      let left = 0;
+      let bottom = last;
+      let right = last;
+      let layer = 0;
+
+      while (top <= bottom && left <= right) {
+        const wall = p[1 + layer % 2];
+        for (let col = left; col <= right; col++) put(top, col, wall);
+        for (let r = top; r <= bottom; r++) put(r, right, wall);
+        if (top + 2 <= bottom) {
+          for (let col = right; col >= left + 1; col--) put(bottom, col, wall);
+        }
+        if (left + 2 <= right) {
+          for (let r = bottom; r >= top + 2; r--) put(r, left + 1, wall);
+        }
+
+        top += 2;
+        left += 2;
+        bottom -= 2;
+        right -= 2;
+        layer++;
+      }
+
+      g[Math.floor(N / 2)][Math.floor(N / 2)] = p[3];
+    }
+
+    function gen(kind, seed, diff) {
+      if (!knownPatternKinds.has(kind)) kind = pickKind(diff, seed);
+
+      const g = blank();
+      const off = seed % 10;
+      const c = Math.floor(N / 2);
+      const last = N - 1;
+      const edge = (r, col) => Math.min(r, col, last - r, last - col);
+      const squareLayer = (r, col) => Math.max(Math.abs(r - c), Math.abs(col - c));
+      const diamondLayer = (r, col) => Math.abs(r - c) + Math.abs(col - c);
+
+      if (kind === "square_target") {
+        for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+          g[r][col] = colorStep(squareLayer(r, col), off);
+          if (Math.abs(r - c) <= 1 && Math.abs(col - c) <= 1) {
+            g[r][col] = colorStep(8, off);
+          }
+        }
+      } else if (kind === "simple_diamond") {
+        for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+          g[r][col] = colorStep(diamondLayer(r, col), off);
+        }
+      } else if (kind === "framed_checker") {
+        for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+          const e = edge(r, col);
+          if (e < 3) {
+            g[r][col] = colorStep(e * 2, off);
+          } else {
+            const br = Math.floor((r - 3) / 3);
+            const bc = Math.floor((col - 3) / 3);
+            g[r][col] = colorStep((br + bc) % 2 ? 5 : 0, off + 3);
+          }
+        }
+      } else if (kind === "diamond_cross") {
+        for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+          g[r][col] = colorStep(diamondLayer(r, col), off);
+          if (r === c || col === c) {
+            g[r][col] = colorStep(Math.abs(r - c) + Math.abs(col - c), off + 5);
+          }
+        }
+      } else if (kind === "rings_axis") {
+        for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+          g[r][col] = colorStep(squareLayer(r, col), off);
+          if (r === c || col === c) {
+            g[r][col] = colorStep(Math.abs(r - c) + Math.abs(col - c), off + 5);
+          }
+          if ((r === c && Math.abs(col - c) <= 1) || (col === c && Math.abs(r - c) <= 1)) {
+            g[r][col] = colorStep(9, off);
+          }
+        }
+      } else if (kind === "mirror_frame") {
+        for (let r = 0; r < N; r++) for (let col = 0; col < N; col++) {
+          g[r][col] = colorStep(edge(r, col) * 2, off);
+          if (r === col || r + col === last) {
+            g[r][col] = colorStep(r * 2, off + 4);
+          }
+        }
+      } else if (kind === "framed_checker_easy") {
+        fillFramedCheckerEasy(g, seed);
+      } else if (kind === "simple_rings_cross") {
+        fillSimpleRingsCross(g, seed);
+      } else if (kind === "basic_diagonal_band") {
+        fillBasicDiagonalBand(g, seed);
+      } else if (kind === "diamond_cross_easy") {
+        fillDiamondCrossEasy(g, seed);
+      } else if (kind === "mirror_frame_easy") {
+        fillMirrorFrameEasy(g, seed);
+      } else if (kind === "block_checker_cross") {
+        fillBlockCheckerCross(g, seed);
+      } else if (kind === "expanding_x_bands_easy") {
+        fillExpandingXBandsEasy(g, seed);
+      } else if (kind === "diagonal_ladders_easy") {
+        fillDiagonalLaddersEasy(g, seed);
+      } else if (kind === "diamond_bfs_islands_easy") {
+        fillDiamondBfsIslandsEasy(g, seed);
+      } else if (kind === "nested_frames_gates_easy") {
+        fillNestedFramesGatesEasy(g, seed);
+      } else if (kind === "square_spiral_easy") {
+        fillSquareSpiralEasy(g, seed);
+      } else if (kind === "ripple_columns_easy") {
+        fillRippleColumnsEasy(g, seed);
+      } else if (kind === "diagonal_wave_shift") {
+        fillDiagonalWaveShift(g, seed);
+      } else if (kind === "diagonal_ladders") {
+        fillDiagonalLadders(g, seed);
+      } else if (kind === "expanding_x_bands") {
+        fillExpandingXBands(g, seed);
+      } else if (kind === "ripple_columns_from_diagonal_seeds") {
+        fillRippleColumnsFromDiagonalSeeds(g, seed);
+      } else if (kind === "zigzag_islands") {
+        fillZigzagIslands(g, seed);
+      } else if (kind === "diamond_bfs_islands") {
+        fillDiamondBfsIslands(g, seed);
+      } else if (kind === "stepped_diagonal_corridor") {
+        fillSteppedDiagonalCorridor(g, seed);
+      } else if (kind === "multi_source_cross_expansion") {
+        fillMultiSourceCrossExpansion(g, seed);
+      } else if (kind === "nested_frames_gates") {
+        fillNestedFramesGates(g, seed);
+      } else if (kind === "square_spiral_maze") {
+        fillSquareSpiralMaze(g, seed);
+      }
+      return g;
+    }
+
+    function createProblem(idx, kind, seed, options = {}) {
+      const point = options.point ?? points[idx];
+      const diff = options.diff ?? idx + 1;
+      const grid = gen(kind, seed, diff);
+      validateTargetGrid(grid);
+      return {
+        title: `Hình ${idx + 1}`,
+        point,
+        kind,
+        seed,
+        label: options.label || "",
+        practiceSpec: options.practiceSpec || null,
+        grid,
+        solved: false,
+        output: blank(),
+        result: null,
+        code: templateCpp(),
+      };
+    }
+
+    function saveCurrentProblemCode() {
+      if (problems[current] && codeEditor) problems[current].code = codeEditor.getValue();
+    }
+
+    function makeSet() {
+      const base = Math.floor(Date.now() % 1000000);
+      if (setMode === "contest10") {
+        problems = points.map((pt, idx) => {
+          const diff = idx + 1;
+          const seed = base + idx * 101;
+          const kind = pickContestKind(diff, seed);
+          return createProblem(idx, kind, seed, {
+            point: pt,
+            diff,
+          });
+        });
+      } else {
+        problems = points.map((pt, idx) => {
+          const deckIndex = (practiceCursor + idx) % practiceDeck.length;
+          const item = practiceDeck[deckIndex];
+          const seed = base + deckIndex * 197 + idx * 37;
+          return createProblem(idx, item.kind, seed, {
+            point: item.point,
+            diff: item.diff,
+            label: item.label,
+            practiceSpec: item,
+          });
+        });
+        practiceCursor = (practiceCursor + points.length) % practiceDeck.length;
+      }
+      current = 0;
+      startedAt = Date.now();
+      renderProblemList();
+      renderCurrent();
+      applyShotMode();
+    }
+
+    function ensureViewers() {
+      if (targetViewer && outputViewer) return;
+      const syncHandler = (source) => {
+        if (!$("syncCamera").checked || syncing) return;
+        const dest = source === targetViewer ? outputViewer : targetViewer;
+        syncing = true;
+        dest.syncFrom(source);
+        syncing = false;
+      };
+      targetViewer = new Voxel3DViewer({
+        mountId: "targetBoardMount",
+        title: "Target Shape",
+        showLegend: true,
+        onCameraChange: syncHandler,
+      });
+      outputViewer = new Voxel3DViewer({
+        mountId: "outputBoardMount",
+        title: "Your Output",
+        showLegend: false,
+        onCameraChange: syncHandler,
+      });
+    }
+
+    function resizeViewersSoon() {
+      requestAnimationFrame(() => {
+        targetViewer?.resize();
+        outputViewer?.resize();
+      });
+    }
+
+    function renderProblemList() {
+      $("problem").innerHTML = problems.map((p, i) => `<option value="${i}">${p.title} - ${p.point}d</option>`).join("");
+      $("problem").value = String(current);
+      $("scoreList").innerHTML = problems.map((p, i) => `
+        <div class="score-card ${i === current ? "active" : ""} ${p.solved ? "solved" : ""}" data-index="${i}">
+          <div class="score-meta">
+            <strong>${p.title} - ${p.point} điểm</strong>
+            <button class="reroll" type="button" data-index="${i}" title="Doi de">&#8635;</button>
+          </div>
+          ${p.label ? `<span class="practice-name">${escapeHtml(p.label)}</span>` : ""}
+        </div>
+      `).join("");
+      $("scoreList").querySelectorAll(".score-card").forEach((card) => {
+        card.addEventListener("click", () => switchProblem(Number(card.dataset.index)));
+      });
+      $("scoreList").querySelectorAll(".reroll").forEach((btn) => {
+        btn.addEventListener("click", (event) => {
+          event.stopPropagation();
+          rerollProblem(Number(btn.dataset.index));
+        });
+      });
+    }
+
+    function switchProblem(next) {
+      if (!problems[next] || next === current) {
+        renderProblemList();
+        return;
+      }
+      saveCurrentProblemCode();
+      current = next;
+      $("problem").value = String(current);
+      renderCurrent();
+    }
+
+    function rerollProblem(index) {
+      if (!problems[index]) return;
+      if (index === current) saveCurrentProblemCode();
+      const seed = (Date.now() + Math.floor(Math.random() * 1000000) + index * 9973) % 1000000;
+      const item = problems[index].practiceSpec;
+      if (setMode === "practice" && item) {
+        problems[index] = createProblem(index, item.kind, seed, {
+          point: item.point,
+          diff: item.diff,
+          label: item.label,
+          practiceSpec: item,
+        });
+      } else {
+        const diff = index + 1;
+        const kind = pickContestKind(diff, seed);
+        problems[index] = createProblem(index, kind, seed, {
+          point: points[index],
+          diff,
+        });
+      }
+      if (index === current) {
+        renderCurrent();
+      } else {
+        renderProblemList();
+      }
+    }
+
+    function switchSetMode(mode) {
+      saveCurrentProblemCode();
+      setMode = mode === "practice" ? "practice" : "contest10";
+      if ($("setMode")) $("setMode").value = setMode;
+      if (setMode === "practice") practiceCursor = 0;
+      makeSet();
+    }
+
+    function renderCurrent() {
+      ensureViewers();
+      const p = problems[current];
+      $("problem").value = String(current);
+      lastOutput = p.output || blank();
+      $("targetInfo").textContent = `${N} x ${N}`;
+      if (codeEditor) codeEditor.setValue(p.code || templateCpp());
+      targetViewer.updateGrid({ grid: p.grid });
+      outputViewer.updateGrid({
+        grid: lastOutput,
+        incorrectCells: p.result ? diffCells(lastOutput, p.grid) : new Set(),
+        expectedGrid: p.grid,
+      });
+      resizeViewersSoon();
+      if (p.result) {
+        updateMetrics(p.result);
+        $("status").textContent = p.result.ok ? "Accepted" : "Wrong Answer";
+        $("message").className = `verdict ${p.result.ok ? "good" : "bad"}`;
+        const invalid = p.result.invalid ? ` ${p.result.invalid} cells outside 1..10.` : "";
+        $("message").textContent = p.result.ok ? "AC: output matches target exactly." : `WA: ${p.result.wrong} wrong cells.${invalid}`;
+        $("log").textContent = p.result.log || "";
+      } else {
+        $("status").textContent = "Ready";
+        $("message").className = "verdict";
+        $("message").textContent = "Press Chay code to compile and render your grid.";
+        $("log").textContent = "";
+        updateMetrics(null);
+      }
+      renderProblemList();
+    }
+
+    function diffCells(grid, compare) {
+      if (!compare) return null;
+      const bad = new Set();
+      for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+        const raw = Number(grid[i]?.[j] || 0);
+        const valid = raw === 0 || (raw >= 1 && raw <= 10);
+        if (!valid || raw !== compare[i][j]) bad.add(`${i},${j}`);
+      }
+      return bad;
+    }
+
+    function updateMetrics(result) {
+      if (!result) {
+        $("verdictText").textContent = "-";
+        $("scoreText").textContent = "0";
+        $("matchText").textContent = "0/225";
+        $("wrongText").textContent = "225";
+        return;
+      }
+      $("verdictText").textContent = result.ok ? "AC" : "WA";
+      $("scoreText").textContent = result.ok ? problems[current].point : 0;
+      $("matchText").textContent = `${result.matched}/225`;
+      $("wrongText").textContent = result.wrong;
+    }
+
+    async function runCode() {
+      const p = problems[current];
+      p.code = codeEditor ? codeEditor.getValue() : templateCpp();
+      $("runBtn").disabled = true;
+      $("status").textContent = "Compiling";
+      $("message").className = "verdict";
+      $("message").textContent = "Compiling C++20...";
+      $("log").textContent = "";
+      try {
+        const res = await fetch(apiUrl("/api/run"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: p.code, target: p.grid })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Run failed");
+        lastOutput = data.grid;
+        p.output = lastOutput;
+        p.result = data;
+        if (data.ok) p.solved = true;
+        outputViewer.updateGrid({
+          grid: lastOutput,
+          incorrectCells: diffCells(lastOutput, p.grid),
+          expectedGrid: p.grid,
+        });
+        resizeViewersSoon();
+        updateMetrics(data);
+        $("status").textContent = data.ok ? "Accepted" : "Wrong Answer";
+        $("message").className = `verdict ${data.ok ? "good" : "bad"}`;
+        const invalid = data.invalid ? ` ${data.invalid} cells outside 1..10.` : "";
+        $("message").textContent = data.ok ? "AC: output matches target exactly." : `WA: ${data.wrong} wrong cells.${invalid}`;
+        $("log").textContent = data.log || "";
+        renderProblemList();
+      } catch (err) {
+        $("status").textContent = "Error";
+        $("message").className = "verdict bad";
+        $("message").textContent = err.message;
+        $("log").textContent = err.message;
+      } finally {
+        $("runBtn").disabled = false;
+      }
+    }
+
+    function matrixText(g) {
+      return g.map(r => "{" + r.map(v => String(v).padStart(2, " ")).join(", ") + "}").join(",\n");
+    }
+
+    function tick() {
+      const left = Math.max(0, 600 - Math.floor((Date.now() - startedAt) / 1000));
+      $("timer").textContent = `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`;
+    }
+
+    function initSplitter() {
+      const splitter = $("splitter");
+      if (!splitter) return;
+      const main = document.querySelector("main");
+      const splitterWidth = 8;
+      const gap = 6;
+      let dragging = false;
+
+      const cssPx = (name, fallback) => {
+        const value = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
+        return Number.isFinite(value) ? value : fallback;
+      };
+      const mainContentMetrics = () => {
+        const rect = main.getBoundingClientRect();
+        const style = getComputedStyle(main);
+        const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
+        const paddingRight = Number.parseFloat(style.paddingRight) || 0;
+        return {
+          left: rect.left + paddingLeft,
+          width: rect.width - paddingLeft - paddingRight
+        };
+      };
+      const layoutAfterPaneResize = () => {
+        requestAnimationFrame(() => {
+          codeEditor?.layout?.();
+          targetViewer?.resize?.();
+          outputViewer?.resize?.();
+        });
+      };
+
+      const clampLeftPx = (leftPx) => {
+        const minLeft = cssPx("--min-left-pane", 420);
+        const minRight = cssPx("--min-right-pane", 420);
+        const mainMetrics = mainContentMetrics();
+        const maxLeft = mainMetrics.width - minRight - splitterWidth - gap * 2;
+        const upper = Math.max(minLeft, maxLeft);
+        return Math.max(minLeft, Math.min(leftPx, upper));
+      };
+
+      const setPaneWidth = (leftPx, persist = true) => {
+        const clamped = clampLeftPx(leftPx);
+        const value = `${Math.round(clamped)}px`;
+        document.documentElement.style.setProperty("--left-pane", value);
+        if (persist) saveWidth(value);
+        layoutAfterPaneResize();
+        return value;
+      };
+
+      const readSavedWidth = () => {
+        try {
+          const saved = localStorage.getItem("voxelLeftPane");
+          const match = saved && saved.match(/^(\d+(?:\.\d+)?)(px|%)$/);
+          if (!match) return null;
+          const raw = Number(match[1]);
+          if (!Number.isFinite(raw)) return null;
+          if (match[2] === "%") return (mainContentMetrics().width * raw) / 100;
+          return raw;
+        } catch {
+          return null;
+        }
+      };
+      const saveWidth = (value) => {
+        try { localStorage.setItem("voxelLeftPane", value); } catch {}
+      };
+
+      const saved = readSavedWidth();
+      if (saved) setPaneWidth(saved, false);
+      else setPaneWidth(mainContentMetrics().width * 0.41, false);
+
+      splitter.addEventListener("pointerdown", (event) => {
+        if (window.matchMedia("(max-width: 1050px)").matches) return;
+        event.preventDefault();
+        splitter.setPointerCapture(event.pointerId);
+        dragging = true;
+        document.body.classList.add("resizing");
+      });
+
+      const handlePointerMove = (event) => {
+        if (!dragging) return;
+        const mainMetrics = mainContentMetrics();
+        let leftPx = event.clientX - mainMetrics.left;
+        const minLeft = cssPx("--min-left-pane", 420);
+        const minRight = cssPx("--min-right-pane", 420);
+        const maxLeft = mainMetrics.width - minRight - splitterWidth - gap * 2;
+        leftPx = Math.max(minLeft, Math.min(leftPx, maxLeft));
+        setPaneWidth(leftPx);
+      };
+
+      const stop = () => {
+        dragging = false;
+        document.body.classList.remove("resizing");
+        const current = getComputedStyle(document.documentElement).getPropertyValue("--left-pane");
+        const leftPx = Number.parseFloat(current);
+        if (Number.isFinite(leftPx)) setPaneWidth(leftPx);
+      };
+      document.addEventListener("pointermove", handlePointerMove);
+      document.addEventListener("pointerup", stop);
+      document.addEventListener("pointercancel", stop);
+      window.addEventListener("resize", () => {
+        const current = getComputedStyle(document.documentElement).getPropertyValue("--left-pane");
+        const leftPx = Number.parseFloat(current);
+        if (Number.isFinite(leftPx)) setPaneWidth(leftPx, false);
+      });
+    }
+
+    function applyShotMode() {
+      const params = new URLSearchParams(location.search);
+      const shot = params.get("shot");
+      if (!shot || !targetViewer) return;
+      requestAnimationFrame(() => {
+        if (shot === "top") targetViewer.setView("top", false);
+        if (shot === "rotated") {
+          targetViewer.camera.position.set(-13, 10, 9);
+          targetViewer.controls.target.set(0, 0, 0);
+          targetViewer.controls.update();
+        }
+        if (shot === "wrong") {
+          const p = problems[current];
+          const wrong = blank();
+          for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if ((i + j) % 5 === 0) wrong[i][j] = 6;
+          lastOutput = wrong;
+          outputViewer.updateGrid({ grid: wrong, incorrectCells: diffCells(wrong, p.grid), expectedGrid: p.grid });
+          updateMetrics({ ok: false, matched: 0, wrong: 225 });
+        }
+      });
+    }
+
+    initMonaco().then(() => {
+      $("setMode").value = setMode;
+      $("setMode").addEventListener("change", () => switchSetMode($("setMode").value));
+      window.addEventListener("resize", resizeViewersSoon);
+      $("newBtn").addEventListener("click", makeSet);
+      $("problem").addEventListener("change", () => switchProblem(Number($("problem").value || 0)));
+      $("runBtn").addEventListener("click", runCode);
+      $("loadCpp").addEventListener("click", () => {
+        const starter = templateCpp();
+        if (codeEditor) codeEditor.setValue(starter);
+        if (problems[current]) problems[current].code = starter;
+      });
+      $("revealBtn").addEventListener("click", () => {
+        $("log").textContent = matrixText(problems[current].grid);
+        $("message").className = "verdict";
+        $("message").textContent = "Target matrix revealed.";
+      });
+      setInterval(tick, 250);
+      makeSet();
+      initSplitter();
+    }).catch((error) => {
+      console.error(error);
+      $("status").textContent = "Editor Error";
+      $("message").className = "verdict bad";
+      $("message").textContent = `Monaco Editor failed to load: ${error.message}`;
+    });
+  </script>
+</body>
+</html>
