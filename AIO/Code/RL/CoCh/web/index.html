@@ -17,8 +17,16 @@
       --purple: #7c3aed;
       --red: #ef476f;
       --left-pane: 41%;
+      --min-left-pane: 420px;
+      --min-right-pane: 420px;
     }
     * { box-sizing: border-box; }
+    html,
+    body {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
     body {
       margin: 0;
       background: var(--bg);
@@ -54,15 +62,28 @@
     }
     main {
       display: grid;
-      grid-template-columns: minmax(360px, var(--left-pane)) 8px minmax(0, 1fr);
+      grid-template-columns: var(--left-pane) 8px minmax(0, 1fr);
       gap: 6px;
       padding: 10px;
       width: 100%;
-      max-width: 1600px;
+      max-width: 100vw;
       margin: 0 auto;
       overflow: hidden;
+      isolation: isolate;
     }
-    main > * { min-width: 0; }
+    main > *,
+    .left-panel,
+    .right,
+    section,
+    .viewer,
+    .result-pane,
+    .viewer-body,
+    .result-body,
+    .viewer3d,
+    .viewer3d-stage {
+      min-width: 0;
+      max-width: 100%;
+    }
     body.resizing { cursor: col-resize; user-select: none; }
     .splitter {
       width: 8px;
@@ -125,6 +146,8 @@
       align-content: start;
       position: relative;
       z-index: 2;
+      overflow: hidden;
+      isolation: isolate;
     }
     .left-panel > .head {
       position: relative;
@@ -202,6 +225,9 @@
       position: relative;
       z-index: 1;
       overflow: hidden;
+      isolation: isolate;
+      contain: layout paint;
+      container-type: inline-size;
     }
     .viewer,
     .result-pane,
@@ -240,8 +266,10 @@
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
+      min-width: 0;
     }
     .metric {
+      min-width: 0;
       min-height: 66px;
       padding: 9px;
       border: 1px solid var(--line);
@@ -250,6 +278,18 @@
     }
     .metric span { color: var(--muted); }
     .metric strong { display: block; font-size: 22px; margin-top: 3px; }
+    @container (max-width: 700px) {
+      .result-body {
+        grid-template-columns: 1fr;
+      }
+      .viewer3d {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .viewer3d-legend {
+        grid-template-columns: repeat(5, max-content);
+        padding-left: 4px;
+      }
+    }
     pre {
       margin: 0;
       max-height: 210px;
@@ -2133,37 +2173,60 @@ void generate_shape(vector<vector<int>>& grid) {
     function initSplitter() {
       const splitter = $("splitter");
       if (!splitter) return;
-      const minLeftPane = 360;
-      const minRightPane = 430;
-      const splitterAndGaps = 20;
+      const main = document.querySelector("main");
+      const splitterWidth = 8;
+      const gap = 6;
+      let dragging = false;
 
-      const clampPanePct = (pct) => {
-        const main = document.querySelector("main");
-        const width = main?.getBoundingClientRect().width || window.innerWidth || 1200;
-        const minPct = (minLeftPane / width) * 100;
-        const maxPct = ((width - minRightPane - splitterAndGaps) / width) * 100;
-        const upper = Math.max(minPct, Math.min(82, maxPct));
-        return Math.max(minPct, Math.min(upper, pct));
+      const cssPx = (name, fallback) => {
+        const value = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
+        return Number.isFinite(value) ? value : fallback;
+      };
+      const mainContentMetrics = () => {
+        const rect = main.getBoundingClientRect();
+        const style = getComputedStyle(main);
+        const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
+        const paddingRight = Number.parseFloat(style.paddingRight) || 0;
+        return {
+          left: rect.left + paddingLeft,
+          width: rect.width - paddingLeft - paddingRight
+        };
+      };
+      const layoutAfterPaneResize = () => {
+        requestAnimationFrame(() => {
+          codeEditor?.layout?.();
+          targetViewer?.resize?.();
+          outputViewer?.resize?.();
+        });
       };
 
-      const setPaneWidth = (pct, persist = true) => {
-        const clamped = clampPanePct(pct);
-        const value = `${clamped.toFixed(1)}%`;
+      const clampLeftPx = (leftPx) => {
+        const minLeft = cssPx("--min-left-pane", 420);
+        const minRight = cssPx("--min-right-pane", 420);
+        const mainMetrics = mainContentMetrics();
+        const maxLeft = mainMetrics.width - minRight - splitterWidth - gap * 2;
+        const upper = Math.max(minLeft, maxLeft);
+        return Math.max(minLeft, Math.min(leftPx, upper));
+      };
+
+      const setPaneWidth = (leftPx, persist = true) => {
+        const clamped = clampLeftPx(leftPx);
+        const value = `${Math.round(clamped)}px`;
         document.documentElement.style.setProperty("--left-pane", value);
         if (persist) saveWidth(value);
-        if (codeEditor) codeEditor.layout();
-        resizeViewersSoon();
+        layoutAfterPaneResize();
         return value;
       };
 
       const readSavedWidth = () => {
         try {
           const saved = localStorage.getItem("voxelLeftPane");
-          const match = saved && saved.match(/^(\d+(?:\.\d+)?)%$/);
+          const match = saved && saved.match(/^(\d+(?:\.\d+)?)(px|%)$/);
           if (!match) return null;
-          const pct = Number(match[1]);
-          if (!Number.isFinite(pct)) return null;
-          return `${clampPanePct(pct).toFixed(1)}%`;
+          const raw = Number(match[1]);
+          if (!Number.isFinite(raw)) return null;
+          if (match[2] === "%") return (mainContentMetrics().width * raw) / 100;
+          return raw;
         } catch {
           return null;
         }
@@ -2173,36 +2236,42 @@ void generate_shape(vector<vector<int>>& grid) {
       };
 
       const saved = readSavedWidth();
-      if (saved) document.documentElement.style.setProperty("--left-pane", saved);
-      else setPaneWidth(41, false);
+      if (saved) setPaneWidth(saved, false);
+      else setPaneWidth(mainContentMetrics().width * 0.41, false);
 
       splitter.addEventListener("pointerdown", (event) => {
         if (window.matchMedia("(max-width: 1050px)").matches) return;
         event.preventDefault();
         splitter.setPointerCapture(event.pointerId);
+        dragging = true;
         document.body.classList.add("resizing");
       });
 
-      splitter.addEventListener("pointermove", (event) => {
-        if (!document.body.classList.contains("resizing")) return;
-        const main = document.querySelector("main");
-        const rect = main.getBoundingClientRect();
-        const pct = ((event.clientX - rect.left) / rect.width) * 100;
-        setPaneWidth(pct);
-      });
+      const handlePointerMove = (event) => {
+        if (!dragging) return;
+        const mainMetrics = mainContentMetrics();
+        let leftPx = event.clientX - mainMetrics.left;
+        const minLeft = cssPx("--min-left-pane", 420);
+        const minRight = cssPx("--min-right-pane", 420);
+        const maxLeft = mainMetrics.width - minRight - splitterWidth - gap * 2;
+        leftPx = Math.max(minLeft, Math.min(leftPx, maxLeft));
+        setPaneWidth(leftPx);
+      };
 
       const stop = () => {
+        dragging = false;
         document.body.classList.remove("resizing");
         const current = getComputedStyle(document.documentElement).getPropertyValue("--left-pane");
-        const pct = Number.parseFloat(current);
-        if (Number.isFinite(pct)) setPaneWidth(pct);
+        const leftPx = Number.parseFloat(current);
+        if (Number.isFinite(leftPx)) setPaneWidth(leftPx);
       };
-      splitter.addEventListener("pointerup", stop);
-      splitter.addEventListener("pointercancel", stop);
+      document.addEventListener("pointermove", handlePointerMove);
+      document.addEventListener("pointerup", stop);
+      document.addEventListener("pointercancel", stop);
       window.addEventListener("resize", () => {
         const current = getComputedStyle(document.documentElement).getPropertyValue("--left-pane");
-        const pct = Number.parseFloat(current);
-        if (Number.isFinite(pct)) setPaneWidth(pct, false);
+        const leftPx = Number.parseFloat(current);
+        if (Number.isFinite(leftPx)) setPaneWidth(leftPx, false);
       });
     }
 
