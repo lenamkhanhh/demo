@@ -54,13 +54,14 @@
     }
     main {
       display: grid;
-      grid-template-columns: minmax(360px, var(--left-pane)) 8px minmax(0, 1fr);
+      grid-template-columns: minmax(360px, var(--left-pane)) 8px minmax(520px, 1fr);
       gap: 6px;
       padding: 10px;
       width: 100%;
       max-width: 1600px;
       margin: 0 auto;
       overflow: hidden;
+      isolation: isolate;
     }
     main > * { min-width: 0; }
     body.resizing { cursor: col-resize; user-select: none; }
@@ -124,7 +125,9 @@
       grid-template-rows: auto auto auto;
       align-content: start;
       position: relative;
-      z-index: 2;
+      z-index: 5;
+      isolation: isolate;
+      overflow: hidden;
     }
     .left-panel > .head {
       position: relative;
@@ -202,6 +205,8 @@
       position: relative;
       z-index: 1;
       overflow: hidden;
+      isolation: isolate;
+      contain: layout paint;
     }
     .viewer,
     .result-pane,
@@ -278,6 +283,8 @@
       grid-template-columns: minmax(0, 1fr) auto;
       gap: 12px;
       width: 100%;
+      overflow: hidden;
+      contain: layout paint;
     }
     .viewer3d-stage {
       position: relative;
@@ -2134,8 +2141,8 @@ void generate_shape(vector<vector<int>>& grid) {
       const splitter = $("splitter");
       if (!splitter) return;
       const minLeftPane = 360;
-      const minRightPane = 430;
-      const splitterAndGaps = 20;
+      const minRightPane = 620;
+      const splitterAndGaps = 24;
 
       const clampPanePct = (pct) => {
         const main = document.querySelector("main");
@@ -2173,7 +2180,7 @@ void generate_shape(vector<vector<int>>& grid) {
       };
 
       const saved = readSavedWidth();
-      if (saved) document.documentElement.style.setProperty("--left-pane", saved);
+      if (saved) setPaneWidth(Number.parseFloat(saved), false);
       else setPaneWidth(41, false);
 
       splitter.addEventListener("pointerdown", (event) => {
