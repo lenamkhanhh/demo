@@ -18,7 +18,7 @@
       --red: #ef476f;
       --left-pane: 41%;
       --min-left-pane: 420px;
-      --min-right-pane: 720px;
+      --min-right-pane: 420px;
     }
     * { box-sizing: border-box; }
     html,
@@ -62,7 +62,7 @@
     }
     main {
       display: grid;
-      grid-template-columns: minmax(var(--min-left-pane), var(--left-pane)) 8px minmax(var(--min-right-pane), 1fr);
+      grid-template-columns: var(--left-pane) 8px minmax(0, 1fr);
       gap: 6px;
       padding: 10px;
       width: 100%;
@@ -227,6 +227,7 @@
       overflow: hidden;
       isolation: isolate;
       contain: layout paint;
+      container-type: inline-size;
     }
     .viewer,
     .result-pane,
@@ -277,6 +278,18 @@
     }
     .metric span { color: var(--muted); }
     .metric strong { display: block; font-size: 22px; margin-top: 3px; }
+    @container (max-width: 700px) {
+      .result-body {
+        grid-template-columns: 1fr;
+      }
+      .viewer3d {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .viewer3d-legend {
+        grid-template-columns: repeat(5, max-content);
+        padding-left: 4px;
+      }
+    }
     pre {
       margin: 0;
       max-height: 210px;
@@ -2171,6 +2184,16 @@ void generate_shape(vector<vector<int>>& grid) {
         const value = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
         return Number.isFinite(value) ? value : fallback;
       };
+      const mainContentMetrics = () => {
+        const rect = main.getBoundingClientRect();
+        const style = getComputedStyle(main);
+        const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
+        const paddingRight = Number.parseFloat(style.paddingRight) || 0;
+        return {
+          left: rect.left + paddingLeft,
+          width: rect.width - paddingLeft - paddingRight
+        };
+      };
 
       const layoutAfterPaneResize = () => {
         requestAnimationFrame(() => {
@@ -2182,9 +2205,9 @@ void generate_shape(vector<vector<int>>& grid) {
 
       const clampLeftPx = (leftPx) => {
         const minLeft = cssPx("--min-left-pane", 420);
-        const minRight = cssPx("--min-right-pane", 720);
-        const mainRect = main.getBoundingClientRect();
-        const maxLeft = mainRect.width - minRight - splitterWidth - gap * 2;
+        const minRight = cssPx("--min-right-pane", 420);
+        const mainMetrics = mainContentMetrics();
+        const maxLeft = mainMetrics.width - minRight - splitterWidth - gap * 2;
         const upper = Math.max(minLeft, maxLeft);
         return Math.max(minLeft, Math.min(leftPx, upper));
       };
@@ -2220,7 +2243,7 @@ void generate_shape(vector<vector<int>>& grid) {
 
       const saved = readSavedWidth();
       if (saved) setPaneWidth(saved, false);
-      else setPaneWidth(main.getBoundingClientRect().width * 0.41, false);
+      else setPaneWidth(mainContentMetrics().width * 0.41, false);
 
       splitter.addEventListener("pointerdown", (event) => {
         if (window.matchMedia("(max-width: 1050px)").matches) return;
@@ -2232,11 +2255,11 @@ void generate_shape(vector<vector<int>>& grid) {
 
       const handlePointerMove = (event) => {
         if (!dragging) return;
-        const mainRect = main.getBoundingClientRect();
-        let leftPx = event.clientX - mainRect.left;
+        const mainMetrics = mainContentMetrics();
+        let leftPx = event.clientX - mainMetrics.left;
         const minLeft = cssPx("--min-left-pane", 420);
-        const minRight = cssPx("--min-right-pane", 720);
-        const maxLeft = mainRect.width - minRight - splitterWidth - gap * 2;
+        const minRight = cssPx("--min-right-pane", 420);
+        const maxLeft = mainMetrics.width - minRight - splitterWidth - gap * 2;
         leftPx = Math.max(minLeft, Math.min(leftPx, maxLeft));
         setPaneWidth(leftPx);
       };
